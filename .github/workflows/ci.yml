@@ -22,7 +22,14 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: olb-web/package-lock.json
+          cache-dependency-path: |
+            olb-web/package-lock.json
+            olb-contract/package-lock.json
+
+      # `file:` dependencies are symlinked, so the contract's own dependencies
+      # (ajv, ajv-formats) must be installed for the tests to resolve them.
+      - working-directory: olb-contract
+        run: npm ci
 
       - working-directory: olb-web
         run: npm ci
