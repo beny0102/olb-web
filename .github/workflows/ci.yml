@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: olb-web
+
+      - uses: actions/checkout@v4
+        with:
+          repository: beny0102/olb-contract
+          path: olb-contract
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: olb-web/package-lock.json
+
+      - working-directory: olb-web
+        run: npm ci
+
+      - working-directory: olb-web
+        run: npm run typecheck
+
+      - working-directory: olb-web
+        run: npm test
+
+      - working-directory: olb-web
+        run: npm run build
