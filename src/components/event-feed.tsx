@@ -6,7 +6,7 @@ export function EventFeed({ events }: { events: Event[] }) {
 
   return (
     <section className="panel" aria-label="Registro de eventos">
-      <header className="flex items-center justify-between border-b border-line px-5 py-3">
+      <header className="flex items-center justify-between border-b border-nightline px-5 py-3">
         <h2 className="text-sm font-semibold">Registro</h2>
         <span className="font-mono text-[11px] text-muted">{events.length} eventos</span>
       </header>
@@ -14,7 +14,7 @@ export function EventFeed({ events }: { events: Event[] }) {
       {recent.length === 0 ? (
         <p className="px-5 py-6 text-sm text-muted">Todavía no hay eventos.</p>
       ) : (
-        <ol className="max-h-[26rem] divide-y divide-line overflow-y-auto">
+        <ol className="max-h-[26rem] divide-y divide-nightline overflow-y-auto">
           {recent.map((event) => {
             const detail = eventDetail(event);
             return (

@@ -15,6 +15,27 @@ export function callLabel(call: string): string {
   return CALLS[call] ?? call;
 }
 
+const REASONS: Record<string, string> = {
+  completed: "finalizado",
+  rain: "lluvia",
+  forfeit: "incomparecencia",
+};
+
+export function reasonLabel(reason: string): string {
+  return REASONS[reason] ?? reason;
+}
+
+const SOURCES: Record<string, string> = {
+  human: "anotador",
+  vision: "visión",
+  import: "importación",
+  system: "sistema",
+};
+
+export function sourceLabel(source: string): string {
+  return SOURCES[source] ?? source;
+}
+
 export function inningLabel(state: GameState): string {
   return `${state.inning}ª ${state.half === "top" ? "alta" : "baja"}`;
 }
@@ -52,6 +73,12 @@ export function eventTitle(event: Event): string {
   }
 }
 
+/** Replaces the game.end title while a game is suspended. */
+export function suspendedTitle(event: Event | null): string | null {
+  if (!event || event.type !== "game.end") return null;
+  return `Suspendido · ${reasonLabel(event.payload.reason)}`;
+}
+
 export function eventDetail(event: Event): string | null {
   switch (event.type) {
     case "pitch":
@@ -65,7 +92,7 @@ export function eventDetail(event: Event): string | null {
     case "note":
       return event.payload.text;
     case "game.end":
-      return `${event.payload.finalScore.home}-${event.payload.finalScore.away} · ${event.payload.reason}`;
+      return `${event.payload.finalScore.away}-${event.payload.finalScore.home} · ${reasonLabel(event.payload.reason)}`;
     default:
       return null;
   }
@@ -93,7 +120,7 @@ export function statusLabel(status: GameState["status"]): string {
     case "suspended":
       return "Suspendido";
     case "forfeit":
-      return "Forfeit";
+      return "Incomparecencia";
     default:
       return status;
   }

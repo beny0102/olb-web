@@ -1,0 +1,27 @@
+/*
+ * Semantic design tokens for the league portal.
+ * DESIGN.md (Heritage Athletic Governance) is the source of truth.
+ * Components consume the Tailwind aliases declared in `globals.css`
+ * (`bg-surface`, `text-ink`, `border-line`, `font-display`), never raw hex.
+ */
+:root {
+  --olb-surface: #f9f9ff;
+  --olb-surface-low: #f0f3ff;
+  --olb-surface-raised: #ffffff;
+  --olb-ink: #141c28;
+  --olb-ink-muted: #45464d;
+  --olb-accent: #ba0222;
+  --olb-accent-soft: #ffdad7;
+  --olb-band: #111b31;
+  --olb-band-ink: #ffffff;
+  --olb-band-muted: #79849f;
+  --olb-gold: #cba72f;
+  --olb-line: #e2e6ec;
+  --olb-line-strong: #cbd2dc;
+  --olb-table-head: #f1f3f5;
+  --olb-table-alt: #fafbfc;
+  --olb-font-display: var(--font-barlow), "Arial Narrow", sans-serif;
+  --olb-font-body: var(--font-hanken), "Helvetica Neue", Arial, sans-serif;
+  --olb-font-label-caps: var(--font-hanken), "Helvetica Neue", Arial, sans-serif;
+  --olb-font-tabular-stats: var(--font-barlow), "Arial Narrow", sans-serif;
+}

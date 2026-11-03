@@ -2,10 +2,10 @@ import Link from "next/link";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-night/85 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-nightline bg-night/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-3" aria-label="Open League Baseball, inicio">
-          <span className="grid size-9 place-items-center rounded-md border border-line bg-panel font-mono text-sm font-bold text-grass">
+          <span className="grid size-9 place-items-center rounded-md border border-nightline bg-panel font-mono text-sm font-bold text-grass">
             OLB
           </span>
           <span className="text-sm font-semibold tracking-tight sm:text-base">

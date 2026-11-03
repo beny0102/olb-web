@@ -10,7 +10,7 @@ synthetic until `olb-vision` ships calibrated tracks.
 
 | Route | What you get |
 | --- | --- |
-| `/` | Game list from `olb-api`, with a clear offline state when the API is down |
+| `/` | League portal: official ticker, four score cards, featured game with linescore and telemetry rail, competition slate, day ledger and the patrimony band. Every value comes from `olb-api`; missing domains stay empty. |
 | `/games/[id]` | Scoreboard, count, bases, event log and pitch viewer, polled every 3 s |
 | `/demo` | Fully static game replayed from an embedded event log, no backend |
 
@@ -27,6 +27,19 @@ synthetic until `olb-vision` ships calibrated tracks.
 
 Next.js 16 (App Router) · React 19 · React Three Fiber 9 · three.js · Tailwind
 CSS 4 · TypeScript strict. No UI kit, no state library.
+
+The homepage lives in the `(portal)` route group with its own light shell; the
+viewer routes keep the dark shell in `(viewer)`. Semantic tokens live in
+`src/theme/tokens.css`, with league overrides in
+`src/theme/leagues/metropolitana.css`. Components use `bg-surface`, `text-ink`,
+`border-line` and `font-display`; no raw hex values live in components.
+
+## Design system
+
+The league portal follows [`DESIGN.md`](DESIGN.md) — **Heritage Athletic Governance**:
+chalk surfaces, sovereign navy bands, competition crimson, Barlow Condensed display and
+Hanken Grotesk body, square corners and structural rules instead of shadows. `DESIGN.md`
+is the source of truth for any UI change; `src/theme/tokens.css` holds the semantic values.
 
 ## Quick start
 
@@ -100,7 +113,8 @@ used by the static demo, and the synthetic pitch geometry.
 - Real tracks: `olb-vision` does not exist yet.
 - Cloudflare Workers deployment from ADR 0001, wired once there is something
   worth deploying.
-- League pages, standings, player profiles.
+- League pages, standings, player profiles. The portal links only to domains the
+  API actually exposes; there is no standings or player-stats table yet.
 
 ## Related
 

@@ -1,0 +1,191 @@
+import Link from "next/link";
+import { callLabel, eventDetail, eventTitle, inningLabel, outsLabel, sourceLabel } from "@/lib/format";
+import {
+  formatTime,
+  gameStatus,
+  lastClosedInning,
+  lastEvent,
+  lastPitch,
+  teamAbbr,
+  type PortalGame,
+} from "@/lib/league";
+import { Arrow, StatusBadge } from "./primitives";
+
+function baseLabel(entry: PortalGame): string {
+  const bases = entry.state?.bases;
+  if (!bases) return "Sin estado de bases";
+  const occupied: string[] = [];
+  if (bases.first) occupied.push("1.ª");
+  if (bases.second) occupied.push("2.ª");
+  if (bases.third) occupied.push("3.ª");
+  return occupied.length > 0 ? `Bases: ${occupied.join(", ")}` : "Bases vacías";
+}
+
+function syntheticPoint(pitchNo: number): { x: number; y: number } {
+  const seed = pitchNo * 37 + 11;
+  return {
+    x: 58 + (seed % 84),
+    y: 42 + ((seed * 7) % 96),
+  };
+}
+
+function StrikeZone({ pitchNo, label }: { pitchNo: number | null; label: string }) {
+  const point = syntheticPoint(pitchNo ?? 1);
+  return (
+    <div className="relative flex h-56 w-full items-center justify-center overflow-hidden border border-line bg-surface-low p-4">
+      <svg viewBox="0 0 200 200" className="h-full w-full max-w-[190px]" role="img" aria-label={label}>
+        <rect x="50" y="30" width="100" height="120" fill="none" stroke="currentColor" className="text-band" strokeWidth="2" />
+        <line x1="50" x2="150" y1="70" y2="70" stroke="currentColor" strokeDasharray="2 2" className="text-line-strong" />
+        <line x1="50" x2="150" y1="110" y2="110" stroke="currentColor" strokeDasharray="2 2" className="text-line-strong" />
+        <line x1="83.3" x2="83.3" y1="30" y2="150" stroke="currentColor" strokeDasharray="2 2" className="text-line-strong" />
+        <line x1="116.6" x2="116.6" y1="30" y2="150" stroke="currentColor" strokeDasharray="2 2" className="text-line-strong" />
+        <polygon points="50,175 150,175 150,185 100,195 50,185" className="fill-line-strong" opacity="0.5" />
+        <line
+          x1="100"
+          y1="190"
+          x2={point.x}
+          y2={point.y}
+          stroke="currentColor"
+          strokeDasharray="4 3"
+          strokeWidth="1.5"
+          className="text-accent"
+        />
+        <circle cx={point.x} cy={point.y} r="7" className="fill-accent" />
+        <circle cx={point.x} cy={point.y} r="11" fill="none" stroke="currentColor" strokeWidth="1" className="text-accent" opacity="0.4" />
+      </svg>
+      <span className="absolute bottom-2 right-2 bg-accent px-1.5 py-1 text-right text-band-ink">
+        <span className="block font-label-caps text-label-caps uppercase">
+          Trayectoria sintética
+        </span>
+        <span className="block font-label-caps text-label-caps uppercase text-band-ink/80">
+          Sin track de visión
+        </span>
+      </span>
+    </div>
+  );
+}
+
+export function PortalGameRail({ entry }: { entry: PortalGame }) {
+  const status = gameStatus(entry);
+  const state = entry.state;
+  const pitch = lastPitch(entry);
+  const event = lastEvent(entry);
+  const pitchLabel =
+    pitch && pitch.type === "pitch"
+      ? `Pitcheo #${pitch.payload.pitchNo} · ${callLabel(pitch.payload.call)}`
+      : "Sin lanzamientos registrados";
+  const pitchNo = pitch && pitch.type === "pitch" ? pitch.payload.pitchNo : null;
+  const pitchType = pitch && pitch.type === "pitch" ? pitch.payload.pitchType : undefined;
+
+  return (
+    <aside
+      aria-label="Estado del juego destacado"
+      className="flex h-full flex-col overflow-hidden border border-line-strong bg-raised"
+    >
+      <div
+        className={`flex items-center justify-between gap-2 px-3 py-2 text-band-ink ${status === "live" ? "bg-accent" : "bg-band"}`}
+      >
+        <span className="font-label-caps text-label-caps uppercase">
+          {status === "live" ? "Turno en vivo" : "Acta del partido"}
+        </span>
+        <span className="font-label-caps text-label-caps uppercase">
+          {state && state.status !== "scheduled" ? `${inningLabel(state)} · ${outsLabel(state.outs)}` : "Sin jugadas"}
+        </span>
+      </div>
+
+      <div className="border-b border-line bg-surface-low p-3">
+        <div className="flex items-center justify-between gap-2 text-center">
+          <div className="flex-1">
+            <span className="block font-display text-title-md uppercase text-ink-muted">
+              {teamAbbr(entry.game.awayTeam)}
+            </span>
+            <span className="mt-1 block font-display text-headline-md text-ink">
+              {state && state.status !== "scheduled" ? state.score.away : "—"}
+            </span>
+          </div>
+          <div className="flex flex-col items-center gap-1 px-2">
+            <StatusBadge
+              status={status}
+              suffix={
+                state && state.status !== "scheduled"
+                  ? String(
+                      state.status === "final"
+                        ? (lastClosedInning(entry.events) ?? state.inning)
+                        : state.inning,
+                    )
+                  : null
+              }
+            />
+            <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+              {entry.game.homeTeam}
+            </span>
+          </div>
+          <div className="flex-1">
+            <span className="block font-display text-title-md uppercase text-accent">
+              {teamAbbr(entry.game.homeTeam)}
+            </span>
+            <span className="mt-1 block font-display text-headline-md text-accent">
+              {state && state.status !== "scheduled" ? state.score.home : "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-label-caps text-label-caps uppercase text-ink">
+            Zona de strike
+          </span>
+          <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+            {pitchLabel}
+          </span>
+        </div>
+
+        <StrikeZone pitchNo={pitchNo} label={`Zona de strike con una trayectoria sintética para el pitcheo ${pitchNo ?? "sin registro"}.`} />
+
+        <dl className="grid grid-cols-2 gap-2">
+          <div className="border-l-2 border-line-strong bg-surface-low p-2">
+            <dt className="font-label-caps text-label-caps uppercase text-ink-muted">Cuenta</dt>
+            <dd className="font-display text-title-lg text-ink">
+              {state ? `${state.count.balls}-${state.count.strikes}` : "—"}
+            </dd>
+          </div>
+          <div className="border-l-2 border-accent bg-surface-low p-2">
+            <dt className="font-label-caps text-label-caps uppercase text-ink-muted">Outs</dt>
+            <dd className="font-display text-title-lg text-ink">
+              {state ? outsLabel(state.outs) : "—"}
+            </dd>
+          </div>
+          <div className="col-span-2 border-l-2 border-line-strong bg-surface-low p-2">
+            <dt className="font-label-caps text-label-caps uppercase text-ink-muted">Bases</dt>
+            <dd className="font-body text-body-sm font-semibold text-ink">{baseLabel(entry)}</dd>
+          </div>
+        </dl>
+
+        <div className="border-t border-line pt-2">
+          <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+            Último evento
+          </span>
+          <p className="mt-0.5 font-display text-title-lg uppercase text-ink">
+            {event ? eventTitle(event) : "Sin eventos registrados"}
+          </p>
+          {event ? (
+            <p className="mt-0.5 font-body text-body-sm text-ink-muted">
+              {eventDetail(event) ?? `Secuencia ${event.seq}`} · {formatTime(event.occurredAt)} · {sourceLabel(event.source)}
+            </p>
+          ) : null}
+          {pitchType ? (
+            <p className="mt-0.5 font-body text-body-sm text-ink-muted">Tipo registrado: {pitchType}</p>
+          ) : null}
+        </div>
+
+        <Link
+          href={`/games/${entry.game.id}`}
+          className="mt-auto inline-flex w-full items-center justify-center gap-2 border-b-2 border-transparent bg-band px-6 py-3 font-body text-[12px] font-bold uppercase tracking-[0.08em] text-band-ink transition-colors hover:border-accent"
+        >
+          Ver expediente completo <Arrow />
+        </Link>
+      </div>
+    </aside>
+  );
+}

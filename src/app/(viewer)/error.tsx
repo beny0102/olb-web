@@ -10,7 +10,7 @@ export default function ErrorPage({ reset }: { error: Error; reset: () => void }
       <button
         type="button"
         onClick={reset}
-        className="mt-5 rounded-md border border-line px-3 py-2 text-sm transition-colors hover:border-grass/60"
+        className="mt-5 rounded-md border border-nightline px-3 py-2 text-sm transition-colors hover:border-grass/60"
       >
         Reintentar
       </button>

@@ -1,7 +1,20 @@
 import type { Metadata } from "next";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { Barlow_Condensed, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
+
+const barlow = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-barlow",
+  display: "swap",
+});
+
+const hanken = Hanken_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-hanken",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -22,12 +35,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es">
-      <body className="flex min-h-dvh flex-col">
-        <SiteHeader />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12">{children}</main>
-        <SiteFooter />
-      </body>
+    <html lang="es" className={`${barlow.variable} ${hanken.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

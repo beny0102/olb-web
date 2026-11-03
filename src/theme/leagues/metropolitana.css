@@ -1,0 +1,8 @@
+/*
+ * Liga Metropolitana identity.
+ * The Heritage Athletic Governance palette lives in `tokens.css` and DESIGN.md;
+ * this stylesheet is reserved for league identity overrides only.
+ */
+[data-league="metropolitana"] {
+  /* Identity only: Metropolitana ships the canonical system palette. */
+}

@@ -1,16 +1,113 @@
 @import "tailwindcss";
 
 @theme {
+  /* Viewer (dark) */
   --color-night: #080c0a;
   --color-panel: #0f1712;
-  --color-line: #223229;
+  --color-nightline: #223229;
   --color-chalk: #f0ebdc;
   --color-muted: #94a39a;
   --color-grass: #2e7d54;
   --color-ember: #e06a45;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* League portal — Heritage Athletic Governance (DESIGN.md) */
+  --color-surface: var(--olb-surface);
+  --color-surface-low: var(--olb-surface-low);
+  --color-raised: var(--olb-surface-raised);
+  --color-ink: var(--olb-ink);
+  --color-ink-muted: var(--olb-ink-muted);
+  --color-accent: var(--olb-accent);
+  --color-accent-soft: var(--olb-accent-soft);
+  --color-band: var(--olb-band);
+  --color-band-ink: var(--olb-band-ink);
+  --color-band-muted: var(--olb-band-muted);
+  --color-gold: var(--olb-gold);
+  --color-line: var(--olb-line);
+  --color-line-strong: var(--olb-line-strong);
+  --color-table-head: var(--olb-table-head);
+  --color-table-alt: var(--olb-table-alt);
+
+  /* Typography */
+  --font-sans: var(--olb-font-body, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  --font-display: var(--olb-font-display, "Arial Narrow", ui-sans-serif, sans-serif);
+  --font-body: var(--olb-font-body, "Helvetica Neue", Arial, sans-serif);
+  --font-label-caps: var(--olb-font-label-caps, "Helvetica Neue", Arial, sans-serif);
+  --font-tabular-stats: var(--olb-font-tabular-stats, "Arial Narrow", ui-sans-serif, sans-serif);
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+
+  /* Type scale (DESIGN.md typography) */
+  --text-display-hero: 72px;
+  --text-display-hero--line-height: 76px;
+  --text-display-hero--letter-spacing: 0.02em;
+  --text-display-hero--font-weight: 800;
+
+  --text-display-hero-mobile: 44px;
+  --text-display-hero-mobile--line-height: 48px;
+  --text-display-hero-mobile--letter-spacing: 0.02em;
+  --text-display-hero-mobile--font-weight: 800;
+
+  --text-headline-lg: 48px;
+  --text-headline-lg--line-height: 52px;
+  --text-headline-lg--letter-spacing: 0.01em;
+  --text-headline-lg--font-weight: 700;
+
+  --text-headline-lg-mobile: 32px;
+  --text-headline-lg-mobile--line-height: 36px;
+  --text-headline-lg-mobile--letter-spacing: 0.01em;
+  --text-headline-lg-mobile--font-weight: 700;
+
+  --text-headline-md: 32px;
+  --text-headline-md--line-height: 36px;
+  --text-headline-md--letter-spacing: 0.01em;
+  --text-headline-md--font-weight: 700;
+
+  --text-headline-sm: 24px;
+  --text-headline-sm--line-height: 28px;
+  --text-headline-sm--letter-spacing: 0.02em;
+  --text-headline-sm--font-weight: 600;
+
+  --text-title-lg: 20px;
+  --text-title-lg--line-height: 28px;
+  --text-title-lg--font-weight: 600;
+
+  --text-title-md: 16px;
+  --text-title-md--line-height: 24px;
+  --text-title-md--font-weight: 600;
+
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 15px;
+  --text-body-md--line-height: 22px;
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 18px;
+  --text-body-sm--font-weight: 400;
+
+  --text-tabular-stats: 20px;
+  --text-tabular-stats--line-height: 24px;
+  --text-tabular-stats--letter-spacing: 0.04em;
+  --text-tabular-stats--font-weight: 700;
+
+  --text-label-caps: 11px;
+  --text-label-caps--line-height: 14px;
+  --text-label-caps--letter-spacing: 0.08em;
+  --text-label-caps--font-weight: 700;
+
+  /* Spacing (DESIGN.md layout) */
+  --spacing-margin: 2rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2.5rem;
+
+  /* Elevation — structural only, no ambient shadows */
+  --shadow-overlay: 0 4px 0 rgba(7, 18, 40, 0.08), 0 1px 3px rgba(7, 18, 40, 0.05);
+  --shadow-lift: 0 6px 0 #071228;
 }
 
 @layer base {
@@ -19,12 +116,16 @@
   }
 
   body {
-    background:
-      radial-gradient(70rem 40rem at 50% -20rem, #123522 0%, transparent 70%),
-      var(--color-night);
+    background: var(--color-night);
     color: var(--color-chalk);
     font-family: var(--font-sans);
     min-height: 100dvh;
+  }
+
+  body:has(.portal-shell) {
+    background: var(--olb-surface);
+    color: var(--olb-ink);
+    color-scheme: light;
   }
 
   ::selection {
@@ -46,8 +147,47 @@
 
   .panel {
     background: color-mix(in srgb, var(--color-panel) 88%, transparent);
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-nightline);
     border-radius: 0.75rem;
+  }
+
+  .viewer-shell {
+    background:
+      radial-gradient(70rem 40rem at 50% -20rem, #123522 0%, transparent 70%),
+      var(--color-night);
+    color: var(--color-chalk);
+    color-scheme: dark;
+  }
+
+  .portal-shell {
+    --radius-xs: 0;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    --radius-2xl: 0;
+    --radius-3xl: 0;
+    --radius-full: 0;
+    background: var(--olb-surface);
+    color: var(--olb-ink);
+    color-scheme: light;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .portal-shell ::selection {
+    background: var(--olb-accent);
+    color: var(--olb-band-ink);
+  }
+
+  .portal-shell :focus-visible {
+    outline-color: var(--olb-accent);
+  }
+
+  .field-mark {
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--olb-band-ink) 9%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--olb-band-ink) 7%, transparent) 1px, transparent 1px);
+    background-size: 56px 56px;
   }
 }
 

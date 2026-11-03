@@ -17,7 +17,7 @@ export default function NotFound() {
         </Link>
         <Link
           href="/demo"
-          className="rounded-md border border-line px-4 py-2 text-sm transition-colors hover:border-grass/60"
+          className="rounded-md border border-nightline px-4 py-2 text-sm transition-colors hover:border-grass/60"
         >
           Demostración
         </Link>

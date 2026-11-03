@@ -8,13 +8,13 @@ export function BasesDiamond({ bases }: { bases: GameState["bases"] }) {
   };
 
   const baseClass = (on: boolean) =>
-    on ? "fill-ember stroke-ember" : "fill-transparent stroke-line";
+    on ? "fill-ember stroke-ember" : "fill-transparent stroke-nightline";
 
   return (
     <svg viewBox="0 0 100 100" className="size-24" role="img" aria-label="Bases ocupadas">
       <path
         d="M50 90 L90 50 L50 10 L10 50 Z"
-        className="fill-none stroke-line"
+        className="fill-none stroke-nightline"
         strokeWidth="2"
         strokeDasharray="4 5"
       />
@@ -43,7 +43,7 @@ export function CountIndicator({ count, outs }: { count: GameState["count"]; out
         {Array.from({ length: total }, (_, index) => (
           <span
             key={index}
-            className={`size-2.5 rounded-full border ${index < filled ? color : "border-line bg-transparent"}`}
+            className={`size-2.5 rounded-full border ${index < filled ? color : "border-nightline bg-transparent"}`}
           />
         ))}
       </span>

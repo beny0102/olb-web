@@ -22,7 +22,7 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
         <div className="mt-5 flex gap-3">
           <Link
             href="/demo"
-            className="rounded-md border border-line px-3 py-2 text-sm transition-colors hover:border-grass/60"
+            className="rounded-md border border-nightline px-3 py-2 text-sm transition-colors hover:border-grass/60"
           >
             Ir a la demostración
           </Link>

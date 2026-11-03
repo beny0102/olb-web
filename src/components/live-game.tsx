@@ -123,7 +123,7 @@ export function LiveGame({
                 <dd className="mt-1 font-mono text-xs">{demo ? "demo estática" : "olb-api"}</dd>
               </div>
             </dl>
-            <p className="mt-4 border-t border-line pt-4 text-xs leading-relaxed text-muted">
+            <p className="mt-4 border-t border-nightline pt-4 text-xs leading-relaxed text-muted">
               La trayectoria del pitcheo es sintética hasta que <span className="font-mono">olb-vision</span>{" "}
               entregue tracks calibrados. El marcador y el conteo sí salen del registro de eventos.
             </p>

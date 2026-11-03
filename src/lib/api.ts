@@ -18,8 +18,19 @@ async function get<T>(base: string, path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+export interface HealthRecord {
+  status: string;
+  contract: string;
+  storage: string;
+  time: string;
+}
+
 export function fetchGames(): Promise<GameRecord[]> {
   return get<GameRecord[]>(SERVER_API_URL, "/games");
+}
+
+export function fetchHealth(): Promise<HealthRecord> {
+  return get<HealthRecord>(SERVER_API_URL, "/health");
 }
 
 export function fetchGame(id: string): Promise<GameRecord> {

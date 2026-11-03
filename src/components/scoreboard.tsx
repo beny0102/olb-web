@@ -17,11 +17,11 @@ function TeamRow({
     <div className="flex items-center justify-between gap-4 py-3">
       <div className="flex min-w-0 items-center gap-3">
         <span
-          className={`size-2 shrink-0 rounded-full ${batting ? "bg-ember" : "bg-line"}`}
+          className={`size-2 shrink-0 rounded-full ${batting ? "bg-ember" : "bg-nightline"}`}
           aria-hidden="true"
         />
         <span className="truncate text-base font-medium sm:text-lg">{name}</span>
-        <span className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+        <span className="rounded border border-nightline px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted">
           {side}
         </span>
       </div>
@@ -54,7 +54,7 @@ export function Scoreboard({
         </div>
         <span
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
-            live ? "border-grass/50 bg-grass/10 text-grass" : "border-line bg-panel text-muted"
+            live ? "border-grass/50 bg-grass/10 text-grass" : "border-nightline bg-panel text-muted"
           }`}
         >
           <span className={`size-1.5 rounded-full ${live ? "animate-pulse bg-grass" : "bg-muted"}`} />
@@ -62,7 +62,7 @@ export function Scoreboard({
         </span>
       </div>
 
-      <div className="mt-5 divide-y divide-line border-y border-line" aria-live="polite">
+      <div className="mt-5 divide-y divide-nightline border-y border-nightline" aria-live="polite">
         <TeamRow
           name={game.awayTeam}
           side="Visitante"

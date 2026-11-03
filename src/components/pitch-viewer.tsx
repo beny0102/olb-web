@@ -33,9 +33,9 @@ export function PitchViewer({ pitch }: { pitch: PitchEvent | null }) {
 
   return (
     <section className="panel overflow-hidden" aria-label="Visor de pitcheo">
-      <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
+      <header className="flex items-center justify-between gap-3 border-b border-nightline px-5 py-3">
         <h2 className="text-sm font-semibold">Último lanzamiento</h2>
-        <span className="rounded border border-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+        <span className="rounded border border-nightline px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted">
           Trayectoria sintética
         </span>
       </header>
