@@ -93,8 +93,10 @@ export function eventDetail(event: Event): string | null {
       const runs = event.payload.runsBattedIn;
       return `${event.payload.code}${runs > 0 ? ` · ${runs} ${runs === 1 ? "carrera" : "carreras"}` : ""}`;
     }
-    case "inning.end":
-      return `${event.payload.runsScored} carreras · ${event.payload.outs} outs`;
+    case "inning.end": {
+      const runs = event.payload.runsScored;
+      return `${runs} ${runs === 1 ? "carrera" : "carreras"} · ${outsLabel(event.payload.outs)}`;
+    }
     case "note":
       return event.payload.text;
     case "game.end":

@@ -21,10 +21,10 @@ describe("demo game", () => {
       inning: 1,
       half: "bottom",
       battingTeam: "home",
-      outs: 0,
+      outs: 1,
       score: { away: 1, home: 0 },
       count: { balls: 0, strikes: 0 },
-      lastSeq: 10,
+      lastSeq: 11,
     });
   });
 });

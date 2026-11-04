@@ -1,6 +1,17 @@
 import { CONTRACT_VERSION, formatTime } from "@/lib/league";
 import type { HealthRecord } from "@/lib/api";
 
+const STORAGE_LABEL: Record<string, string> = {
+  memory: "memoria",
+  postgres: "postgres",
+  demo: "demo",
+};
+
+/** Never leak a raw English storage backend into the portal copy. */
+function storageLabel(storage: string): string {
+  return STORAGE_LABEL[storage] ?? storage;
+}
+
 export function PortalStatusBar({
   gameCount,
   fetchedAt,
@@ -25,7 +36,7 @@ export function PortalStatusBar({
           </p>
         </div>
         <span className="shrink-0 font-label-caps text-label-caps uppercase text-gold">
-          Fuente: olb-api{health ? ` · ${health.storage}` : ""}
+          Fuente: olb-api{health ? ` · ${storageLabel(health.storage)}` : ""}
         </span>
       </div>
     </section>

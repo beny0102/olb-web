@@ -3,6 +3,7 @@ import type { Event, GameRecord, GameState } from "./types";
 const GAME_ID = "0192f3a0-5b11-7a02-8f3c-1c9d2e3f4a50";
 const BATTER = "0192f3a2-0001-7000-8000-000000000001";
 const PITCHER = "0192f3a2-0001-7000-8000-000000000002";
+const RUNNER = "0192f3a2-0001-7000-8000-000000000003";
 const BASE = Date.parse("2026-04-11T23:41:00.000Z");
 
 function demoEvent(seq: number, type: Event["type"], payload: unknown): Event {
@@ -37,7 +38,7 @@ export const demoGame: GameRecord = {
   scheduledStart: null,
   venue: null,
   createdAt: new Date(BASE).toISOString(),
-  lastSeq: 10,
+  lastSeq: 11,
 };
 
 export const demoEvents: Event[] = [
@@ -54,9 +55,16 @@ export const demoEvents: Event[] = [
   }),
   demoEvent(6, "inning.end", { inning: 1, half: "top", runsScored: 1, outs: 3 }),
   pitch(7, "B", 0, 0),
-  pitch(8, "S", 0, 0),
+  pitch(8, "S", 1, 0),
   demoEvent(9, "ball_in_play", { batter: BATTER, code: "8/F", runsBattedIn: 0 }),
-  demoEvent(10, "note", { text: "Transmisión de demostración, sin cámaras." }),
+  demoEvent(10, "runner", {
+    player: RUNNER,
+    from: "1",
+    to: "2",
+    kind: "caught_stealing",
+    out: true,
+  }),
+  demoEvent(11, "note", { text: "Transmisión de demostración, sin cámaras." }),
 ];
 
 const cleanCount = { balls: 0, strikes: 0 };
@@ -112,6 +120,11 @@ export function foldDemo(events: readonly Event[]): GameState {
           count: { ...cleanCount },
           score: { ...state.score, [side]: state.score[side] + event.payload.runsBattedIn },
         };
+        break;
+      }
+      case "runner": {
+        const outs = event.payload.out ? Math.min(state.outs + 1, 2) : state.outs;
+        state = { ...base, outs };
         break;
       }
       case "inning.end": {

@@ -157,7 +157,12 @@ export function PortalFeaturedGame({ entry }: { entry: PortalGame | null }) {
               </p>
               {play && play.type === "ball_in_play" ? (
                 <p className="mt-1 font-body text-body-sm text-ink-muted">
-                  Código {play.payload.code} · {eventDetail(play) ?? `${play.payload.runsBattedIn} carreras`} ·
+                  Código {play.payload.code} ·{" "}
+                  {eventDetail(play) ??
+                    `${play.payload.runsBattedIn} ${
+                      play.payload.runsBattedIn === 1 ? "carrera" : "carreras"
+                    }`}{" "}
+                  ·
                   secuencia {play.seq}
                 </p>
               ) : null}
