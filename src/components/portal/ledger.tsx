@@ -5,7 +5,7 @@ import {
   lastClosedInning,
   lastEvent,
   ledgerGames,
-  scoreLabel,
+  ledgerScore,
   shortGameId,
   teamAbbr,
   type PortalGame,
@@ -31,7 +31,7 @@ function LedgerRow({ entry }: { entry: PortalGame }) {
         <StatusBadge status={gameStatus(entry)} />
       </td>
       <td className="px-3 py-3 font-display text-tabular-stats text-ink">
-        {scoreLabel(entry)}
+        {ledgerScore(entry)}
       </td>
       <td className="px-3 py-3 font-body text-body-sm text-ink-muted">
         <InningMark state={state} closedInning={lastClosedInning(entry.events)} />

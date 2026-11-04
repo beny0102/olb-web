@@ -231,6 +231,11 @@ export function scoreLabel(entry: PortalGame): string {
   return `${away} ${entry.state.score.away}, ${home} ${entry.state.score.home}`;
 }
 
+/** A score column shows a dash before first pitch; the matchup belongs in the slate. */
+export function ledgerScore(entry: PortalGame): string {
+  return gameStatus(entry) === "scheduled" ? "—" : scoreLabel(entry);
+}
+
 /**
  * Builds the linescore exclusively from closed half-innings. Runs still in
  * progress are not guessed; the official R column comes from `GameState`.
