@@ -14,23 +14,26 @@ function Shield() {
   );
 }
 
-function NavLinks({ className }: { className: string }) {
+function NavLinks({ active, className }: { active: "portada" | null; className: string }) {
   return (
     <nav aria-label="Principal" data-portal-nav className={className}>
-      {NAV.map((item) => (
-        <Link
-          key={item.label}
-          href={item.href}
-          aria-current={item.match === "/" ? "page" : undefined}
-          className={
-            item.match === "/"
-              ? "bg-band px-3 py-2 font-label-caps text-label-caps uppercase text-band-ink"
-              : "px-3 py-2 font-label-caps text-label-caps uppercase text-ink-muted transition-colors hover:bg-surface-low hover:text-ink"
-          }
-        >
-          {item.label}
-        </Link>
-      ))}
+      {NAV.map((item) => {
+        const isActive = item.match === "/" && active === "portada";
+        return (
+          <Link
+            key={item.label}
+            href={item.href}
+            aria-current={isActive ? "page" : undefined}
+            className={
+              isActive
+                ? "bg-band px-3 py-2 font-label-caps text-label-caps uppercase text-band-ink"
+                : "px-3 py-2 font-label-caps text-label-caps uppercase text-ink-muted transition-colors hover:bg-surface-low hover:text-ink"
+            }
+          >
+            {item.label}
+          </Link>
+        );
+      })}
       <a
         href="https://github.com/beny0102/olb"
         rel="noreferrer"
@@ -43,7 +46,7 @@ function NavLinks({ className }: { className: string }) {
   );
 }
 
-export function PortalHeader() {
+export function PortalHeader({ active = "portada" }: { active?: "portada" | null }) {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface">
       <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">
@@ -62,7 +65,7 @@ export function PortalHeader() {
             </span>
           </Link>
 
-          <NavLinks className="hidden items-center gap-1 lg:flex" />
+          <NavLinks active={active} className="hidden items-center gap-1 lg:flex" />
 
           <div className="hidden shrink-0 items-center gap-3 md:flex">
             <a
@@ -80,7 +83,7 @@ export function PortalHeader() {
           </div>
         </div>
 
-        <NavLinks className="flex items-center gap-1 overflow-x-auto pb-2 lg:hidden" />
+        <NavLinks active={active} className="flex items-center gap-1 overflow-x-auto pb-2 lg:hidden" />
       </div>
     </header>
   );

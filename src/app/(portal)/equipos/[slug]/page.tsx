@@ -47,6 +47,16 @@ function score(entry: PortalGame): string {
   return entry.state ? `${entry.state.score.away}–${entry.state.score.home}` : "—";
 }
 
+/** Final score oriented to the club first, e.g. `TIB 4–2 MAR`. */
+function scoreFor(entry: PortalGame, team: string): string {
+  if (!entry.state) return "—";
+  const { away, home } = entry.state.score;
+  const rival = teamAbbr(opponent(entry, team));
+  return entry.game.homeTeam === team
+    ? `${teamAbbr(team)} ${home}–${away} ${rival}`
+    : `${teamAbbr(team)} ${away}–${home} ${rival}`;
+}
+
 function namesIn(data: PortalData): string[] {
   const standings = data.standings?.teams.map((row) => row.team) ?? [];
   const games = data.games.flatMap((entry) => [entry.game.homeTeam, entry.game.awayTeam]);
@@ -60,7 +70,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   if (!data) {
     return (
       <div data-team={slug}>
-        <PortalHeader />
+        <PortalHeader active={null} />
         <PortalOffline />
         <PortalFooter />
       </div>
@@ -79,7 +89,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
 
   return (
     <div data-team={teamSlug(team)}>
-      <PortalHeader />
+      <PortalHeader active={null} />
       <main>
         <section aria-labelledby="club-title" className="bg-band text-band-ink">
           <div className="mx-auto w-full max-w-[1440px] px-4 py-8 md:px-8">
@@ -152,12 +162,21 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
             <div className="mt-6 grid grid-cols-1 gap-4 border-t border-band-ink/20 pt-4 sm:grid-cols-2">
               <div>
                 <span className="font-label-caps text-label-caps uppercase text-gold">
-                  Próximo juego
+                  {live ? "En vivo" : "Próximo juego"}
                 </span>
                 <p className="mt-1 font-body text-body-md">
-                  {next
-                    ? `${opponent(next, team)} · ${formatScheduledStart(next.game.scheduledStart) ?? "Por confirmar"}`
-                    : "Sin juego programado"}
+                  {live ? (
+                    <Link
+                      href={`/games/${live.game.id}`}
+                      className="underline decoration-gold underline-offset-4 transition-colors hover:text-gold"
+                    >
+                      {opponent(live, team)} · {score(live)}
+                    </Link>
+                  ) : next ? (
+                    `${opponent(next, team)} · ${formatScheduledStart(next.game.scheduledStart) ?? "Por confirmar"}`
+                  ) : (
+                    "Sin juego programado"
+                  )}
                 </p>
               </div>
               <div>
@@ -222,6 +241,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                 <tbody>
                   {games.map((entry) => {
                     const status = gameStatus(entry);
+                    const action = status === "final" ? "Acta" : "Ver";
                     const start = formatScheduledStart(entry.game.scheduledStart);
                     const startTime =
                       start && entry.game.scheduledStart
@@ -250,15 +270,15 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                         <td className="px-3 py-3 text-right font-display text-tabular-stats text-ink">
                           {status === "scheduled"
                             ? (startTime ?? "Por confirmar")
-                            : score(entry)}
+                            : scoreFor(entry, team)}
                         </td>
                         <td className="px-3 py-3 text-right">
                           <Link
                             href={`/games/${entry.game.id}`}
-                            aria-label={`Acta del juego ${shortGameId(entry.game.id)}`}
+                            aria-label={`${action} del juego ${shortGameId(entry.game.id)}`}
                             className="inline-flex items-center gap-1 font-label-caps text-label-caps uppercase text-accent transition-colors hover:text-ink"
                           >
-                            Acta <Arrow />
+                            {action} <Arrow />
                           </Link>
                         </td>
                       </tr>
