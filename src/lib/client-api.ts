@@ -1,4 +1,4 @@
-import type { Event, GameState } from "./types";
+import type { BoxScore, Event, GameState } from "./types";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -14,4 +14,8 @@ export function clientState(id: string): Promise<GameState> {
 
 export function clientEvents(id: string, fromSeq: number): Promise<Event[]> {
   return get<Event[]>(`/games/${encodeURIComponent(id)}/events?fromSeq=${fromSeq}`);
+}
+
+export function clientBoxScore(id: string): Promise<BoxScore> {
+  return get<BoxScore>(`/games/${encodeURIComponent(id)}/boxscore`);
 }

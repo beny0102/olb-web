@@ -1,4 +1,4 @@
-import type { Event, GameRecord, GameState } from "./types";
+import type { BoxScore, Event, GameRecord, GameState, Standings } from "./types";
 
 const SERVER_API_URL = (process.env.API_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -45,19 +45,28 @@ export function fetchEvents(id: string, fromSeq = 0): Promise<Event[]> {
   return get<Event[]>(SERVER_API_URL, `/games/${encodeURIComponent(id)}/events?fromSeq=${fromSeq}`);
 }
 
+export function fetchBoxScore(id: string): Promise<BoxScore> {
+  return get<BoxScore>(SERVER_API_URL, `/games/${encodeURIComponent(id)}/boxscore`);
+}
+
+export function fetchStandings(): Promise<Standings> {
+  return get<Standings>(SERVER_API_URL, "/standings");
+}
+
 export type GamePageData =
-  | { kind: "ok"; game: GameRecord; state: GameState; events: Event[] }
+  | { kind: "ok"; game: GameRecord; state: GameState; events: Event[]; boxScore: BoxScore }
   | { kind: "missing" }
   | { kind: "offline" };
 
 export async function fetchGamePage(id: string): Promise<GamePageData> {
   try {
-    const [game, state, events] = await Promise.all([
+    const [game, state, events, boxScore] = await Promise.all([
       fetchGame(id),
       fetchState(id),
       fetchEvents(id),
+      fetchBoxScore(id),
     ]);
-    return { kind: "ok", game, state, events };
+    return { kind: "ok", game, state, events, boxScore };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return { kind: "missing" };
     return { kind: "offline" };

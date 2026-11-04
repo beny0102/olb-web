@@ -33,6 +33,8 @@ function game(
     id,
     homeTeam,
     awayTeam,
+    scheduledStart: null,
+    venue: null,
     createdAt,
     lastSeq: 0,
   };

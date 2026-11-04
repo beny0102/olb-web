@@ -34,6 +34,8 @@ export const demoGame: GameRecord = {
   id: GAME_ID,
   homeTeam: "Marlins",
   awayTeam: "Tiburones",
+  scheduledStart: null,
+  venue: null,
   createdAt: new Date(BASE).toISOString(),
   lastSeq: 10,
 };

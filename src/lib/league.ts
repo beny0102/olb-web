@@ -1,5 +1,19 @@
-import { fetchEvents, fetchGames, fetchHealth, fetchState, type HealthRecord } from "./api";
-import type { Event, GameRecord, GameState, GameStatus } from "./types";
+import {
+  fetchEvents,
+  fetchGames,
+  fetchHealth,
+  fetchStandings,
+  fetchState,
+  type HealthRecord,
+} from "./api";
+import type {
+  Event,
+  GameRecord,
+  GameState,
+  GameStatus,
+  Standings,
+  StandingsTeam,
+} from "./types";
 
 export const CONTRACT_VERSION = "0.1.0";
 
@@ -12,6 +26,7 @@ export interface PortalGame {
 export interface PortalData {
   games: PortalGame[];
   health: HealthRecord | null;
+  standings: Standings | null;
   fetchedAt: string;
 }
 
@@ -35,9 +50,10 @@ export interface Linescore {
  */
 export async function fetchPortalData(): Promise<PortalData | null> {
   try {
-    const [games, health] = await Promise.all([
+    const [games, health, standings] = await Promise.all([
       fetchGames(),
       fetchHealth().catch(() => null),
+      fetchStandings().catch(() => null),
     ]);
 
     const bundles = await Promise.all(
@@ -50,7 +66,7 @@ export async function fetchPortalData(): Promise<PortalData | null> {
       }),
     );
 
-    return { games: bundles, health, fetchedAt: new Date().toISOString() };
+    return { games: bundles, health, standings, fetchedAt: new Date().toISOString() };
   } catch {
     return null;
   }
@@ -81,6 +97,36 @@ export function orderGames(games: readonly PortalGame[]): PortalGame[] {
 
 export function topGames(games: readonly PortalGame[], limit = 4): PortalGame[] {
   return orderGames(games).slice(0, limit);
+}
+
+function scheduledStartTime(entry: PortalGame): number {
+  const raw = entry.game.scheduledStart;
+  if (!raw) return Number.POSITIVE_INFINITY;
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+}
+
+function byScheduledStart(a: PortalGame, b: PortalGame): number {
+  return (
+    scheduledStartTime(a) - scheduledStartTime(b) || a.game.createdAt.localeCompare(b.game.createdAt)
+  );
+}
+
+/**
+ * Slate order: live first, then scheduled games soonest first, then the most
+ * recent finals. A missing or malformed start time sorts after every known
+ * one instead of being treated as today. Suspended and forfeit records trail.
+ */
+export function orderSlate(games: readonly PortalGame[]): PortalGame[] {
+  const live = games.filter((entry) => gameStatus(entry) === "live").sort(byCreatedDesc);
+  const scheduled = games
+    .filter((entry) => gameStatus(entry) === "scheduled")
+    .sort(byScheduledStart);
+  const final = games.filter((entry) => gameStatus(entry) === "final").sort(byCreatedDesc);
+  const rest = games
+    .filter((entry) => !["live", "scheduled", "final"].includes(gameStatus(entry)))
+    .sort(byCreatedDesc);
+  return [...live, ...scheduled, ...final, ...rest];
 }
 
 export function selectFeatured(games: readonly PortalGame[]): PortalGame | null {
@@ -170,6 +216,12 @@ export function formatTime(value: string | Date): string {
     minute: "2-digit",
     hour12: false,
   }).format(typeof value === "string" ? new Date(value) : value);
+}
+
+/** A standings band needs at least two clubs; otherwise it is omitted. */
+export function visibleStandings(standings: Standings | null): StandingsTeam[] {
+  if (!standings || standings.teams.length < 2) return [];
+  return standings.teams;
 }
 
 export function scoreLabel(entry: PortalGame): string {
