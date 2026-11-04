@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { eventDetail, eventTitle } from "@/lib/format";
 import {
+  gameHeadline,
   gameStatus,
   lastBallInPlay,
   lastClosedInning,
@@ -32,14 +33,6 @@ function FieldMark() {
       </g>
     </svg>
   );
-}
-
-function headline(entry: PortalGame): string {
-  const play = lastBallInPlay(entry);
-  if (play && play.type === "ball_in_play" && play.payload.description?.trim()) {
-    return play.payload.description;
-  }
-  return "Sin jugadas registradas";
 }
 
 function Telem({ entry }: { entry: PortalGame }) {
@@ -145,7 +138,7 @@ export function PortalFeaturedGame({ entry }: { entry: PortalGame | null }) {
                 </span>
               </div>
               <h1 className="max-w-3xl font-display text-headline-lg-mobile uppercase sm:text-headline-lg">
-                {headline(entry)}
+                {gameHeadline(entry)}
               </h1>
             </div>
           </div>

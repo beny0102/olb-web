@@ -220,6 +220,30 @@ export function teamFromSlug(slug: string, names: readonly string[]): string | n
   return null;
 }
 
+/**
+ * Honest headline for the featured game: the last described ball in play wins;
+ * otherwise name the state instead of claiming the log is empty.
+ */
+export function gameHeadline(entry: PortalGame): string {
+  const play = lastBallInPlay(entry);
+  if (play && play.type === "ball_in_play" && play.payload.description?.trim()) {
+    return play.payload.description;
+  }
+
+  const away = teamAbbr(entry.game.awayTeam);
+  const home = teamAbbr(entry.game.homeTeam);
+  const status = gameStatus(entry);
+
+  if (status === "live" || status === "final") {
+    const score = entry.state
+      ? `${entry.state.score.away}–${entry.state.score.home}`
+      : "—–—";
+    return `${status === "live" ? "EN VIVO" : "FINAL"}: ${away} ${score} ${home}`;
+  }
+
+  return `${entry.game.awayTeam} vs ${entry.game.homeTeam}`;
+}
+
 /** Highest inning closed in the log, used instead of the projection's next inning. */
 export function lastClosedInning(events: readonly Event[]): number | null {
   let last: number | null = null;

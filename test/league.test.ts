@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { demoEvents } from "@/lib/demo";
 import {
   deriveLinescore,
+  gameHeadline,
   gameStatus,
   orderGames,
   selectFeatured,
@@ -73,6 +74,34 @@ describe("club slugs", () => {
 
   it("returns null for an unknown slug", () => {
     expect(teamFromSlug("tiburones", ["Marlins", "Leones del Norte"])).toBeNull();
+  });
+});
+
+describe("featured headline", () => {
+  it("uses the last described ball in play", () => {
+    const play = demoEvents.find(
+      (event) => event.type === "ball_in_play" && event.payload.description?.trim(),
+    );
+    const entry = game("described", "2026-01-04T00:00:00Z", "final");
+    entry.events = play ? [play] : [];
+    expect(gameHeadline(entry)).toBe("Línea al jardín izquierdo");
+  });
+
+  it("names a live score instead of claiming there are no plays", () => {
+    const entry = game("live", "2026-01-04T00:00:00Z", "live");
+    if (entry.state) entry.state.score = { away: 2, home: 1 };
+    expect(gameHeadline(entry)).toBe("EN VIVO: TIB 2–1 MAR");
+  });
+
+  it("names a final score", () => {
+    const entry = game("final", "2026-01-04T00:00:00Z", "final");
+    if (entry.state) entry.state.score = { away: 4, home: 2 };
+    expect(gameHeadline(entry)).toBe("FINAL: TIB 4–2 MAR");
+  });
+
+  it("names the scheduled matchup", () => {
+    const entry = game("scheduled", "2026-01-04T00:00:00Z", "scheduled");
+    expect(gameHeadline(entry)).toBe("Tiburones vs Marlins");
   });
 });
 
