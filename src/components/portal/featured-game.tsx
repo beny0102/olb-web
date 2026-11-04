@@ -64,7 +64,9 @@ function Telem({ entry }: { entry: PortalGame }) {
         <div>
           <dt className="font-label-caps text-label-caps uppercase text-band-muted">Cuenta</dt>
           <dd className="font-display text-title-lg">
-            {state ? `${state.count.balls}-${state.count.strikes}` : "—"}
+            {state && (state.status === "live" || state.status === "suspended")
+              ? `${state.count.balls}-${state.count.strikes}`
+              : "—"}
           </dd>
         </div>
         <div>
