@@ -1,5 +1,5 @@
 import { BasesDiamond, CountIndicator } from "@/components/bases";
-import { inningLabel, outsLabel, statusLabel } from "@/lib/format";
+import { scoreboardLine, statusLabel } from "@/lib/format";
 import type { GameRecord, GameState } from "@/lib/types";
 
 function TeamRow({
@@ -39,7 +39,8 @@ export function Scoreboard({
   state: GameState;
   demo?: boolean;
 }) {
-  const live = state.status === "live" && !demo;
+  const showLive = state.status === "live";
+  const live = showLive && !demo;
 
   return (
     <section className="panel p-5 sm:p-6" aria-label="Marcador">
@@ -79,15 +80,15 @@ export function Scoreboard({
 
       <div className="mt-5 flex items-end justify-between gap-6">
         <div className="flex flex-col gap-4">
-          <p className="font-mono text-xs tracking-wide text-muted">
-            {inningLabel(state)} · {outsLabel(state.outs)}
-          </p>
-          <CountIndicator count={state.count} outs={state.outs} />
+          <p className="font-mono text-xs tracking-wide text-muted">{scoreboardLine(state)}</p>
+          {showLive ? <CountIndicator count={state.count} outs={state.outs} /> : null}
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <BasesDiamond bases={state.bases} />
-          <span className="text-[10px] uppercase tracking-widest text-muted">Bases</span>
-        </div>
+        {showLive ? (
+          <div className="flex flex-col items-center gap-1">
+            <BasesDiamond bases={state.bases} />
+            <span className="text-[10px] uppercase tracking-widest text-muted">Bases</span>
+          </div>
+        ) : null}
       </div>
     </section>
   );

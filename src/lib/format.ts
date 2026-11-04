@@ -37,11 +37,17 @@ export function sourceLabel(source: string): string {
 }
 
 export function inningLabel(state: GameState): string {
-  return `${state.inning}ª ${state.half === "top" ? "alta" : "baja"}`;
+  return `${state.inning}.ª ${state.half === "top" ? "alta" : "baja"}`;
 }
 
 export function outsLabel(outs: number): string {
   return outs === 1 ? "1 out" : `${outs} outs`;
+}
+
+/** Live telemetry only belongs to a live game; other states name themselves. */
+export function scoreboardLine(state: GameState): string {
+  if (state.status === "live") return `${inningLabel(state)} · ${outsLabel(state.outs)}`;
+  return statusLabel(state.status);
 }
 
 export function eventTitle(event: Event): string {
