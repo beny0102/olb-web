@@ -43,18 +43,11 @@ function side(entry: PortalGame, team: string): "Local" | "Visitante" {
   return entry.game.homeTeam === team ? "Local" : "Visitante";
 }
 
-function score(entry: PortalGame): string {
-  return entry.state ? `${entry.state.score.away}–${entry.state.score.home}` : "—";
-}
-
-/** Final score oriented to the club first, e.g. `TIB 4–2 MAR`. */
-function scoreFor(entry: PortalGame, team: string): string {
+/** Score oriented to the club first, e.g. `4–2`; `—` when the game has no state. */
+function clubScore(entry: PortalGame, team: string): string {
   if (!entry.state) return "—";
   const { away, home } = entry.state.score;
-  const rival = teamAbbr(opponent(entry, team));
-  return entry.game.homeTeam === team
-    ? `${teamAbbr(team)} ${home}–${away} ${rival}`
-    : `${teamAbbr(team)} ${away}–${home} ${rival}`;
+  return entry.game.homeTeam === team ? `${home}–${away}` : `${away}–${home}`;
 }
 
 function namesIn(data: PortalData): string[] {
@@ -170,7 +163,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                       href={`/games/${live.game.id}`}
                       className="underline decoration-gold underline-offset-4 transition-colors hover:text-gold"
                     >
-                      {opponent(live, team)} · {score(live)}
+                      {team} {clubScore(live, team)} {opponent(live, team)}
                     </Link>
                   ) : next ? (
                     `${opponent(next, team)} · ${formatScheduledStart(next.game.scheduledStart) ?? "Por confirmar"}`
@@ -185,7 +178,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                 </span>
                 <p className="mt-1 font-body text-body-md">
                   {last
-                    ? `${opponent(last, team)} · ${score(last)} · ${side(last, team)}`
+                    ? `${team} ${clubScore(last, team)} ${opponent(last, team)} · ${side(last, team)}`
                     : "Sin resultados finales"}
                 </p>
               </div>
@@ -270,7 +263,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                         <td className="px-3 py-3 text-right font-display text-tabular-stats text-ink">
                           {status === "scheduled"
                             ? (startTime ?? "Por confirmar")
-                            : scoreFor(entry, team)}
+                            : `${teamAbbr(team)} ${clubScore(entry, team)} ${teamAbbr(opponent(entry, team))}`}
                         </td>
                         <td className="px-3 py-3 text-right">
                           <Link
