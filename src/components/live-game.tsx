@@ -10,17 +10,22 @@ import { formatScheduledStart } from "@/lib/format";
 import type { BoxScore, Event, GameRecord, GameState } from "@/lib/types";
 
 type Connection = "live" | "offline" | "demo";
+type ViewerPhase = Connection | "final" | "scheduled";
 
-const CONNECTION_LABEL: Record<Connection, string> = {
+const VIEWER_LABEL: Record<ViewerPhase, string> = {
   live: "Actualizando cada 3 s",
   offline: "API sin respuesta, reintentando",
   demo: "Reproducción estática",
+  final: "Acta cerrada",
+  scheduled: "Juego programado",
 };
 
-const CONNECTION_MARK: Record<Connection, string> = {
+const VIEWER_MARK: Record<ViewerPhase, string> = {
   live: "bg-accent",
   offline: "bg-accent",
   demo: "bg-ink-muted",
+  final: "bg-ink-muted",
+  scheduled: "bg-ink-muted",
 };
 
 function ScheduledGame({ game }: { game: GameRecord }) {
@@ -125,16 +130,26 @@ export function LiveGame({
     return null;
   }, [events]);
 
+  const phase: ViewerPhase =
+    connection === "demo" || connection === "offline"
+      ? connection
+      : state.status === "final" || state.status === "scheduled"
+        ? state.status
+        : "live";
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <span
           className={`inline-flex items-center gap-2 font-label-caps text-label-caps uppercase ${
-            connection === "offline" ? "text-accent" : "text-ink-muted"
+            phase === "offline" ? "text-accent" : "text-ink-muted"
           }`}
         >
-          <span className={`size-2 ${CONNECTION_MARK[connection]}`} aria-hidden="true" />
-          {CONNECTION_LABEL[connection]}
+          <span
+            className={`size-2 ${VIEWER_MARK[phase]} ${phase === "live" ? "animate-pulse" : ""}`}
+            aria-hidden="true"
+          />
+          {VIEWER_LABEL[phase]}
         </span>
         <span className="font-label-caps text-label-caps uppercase text-ink-muted">
           seq {state.lastSeq}
