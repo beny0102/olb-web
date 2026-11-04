@@ -48,6 +48,7 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
         game={data.game}
         initialState={data.state}
         initialEvents={data.events}
+        initialBoxScore={data.boxScore}
       />
     </div>
   );
