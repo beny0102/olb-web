@@ -24,12 +24,26 @@ type PitchEvent = Extract<Event, { type: "pitch" }>;
 
 export function PitchViewer({ pitch }: { pitch: PitchEvent | null }) {
   const [replay, setReplay] = useState(0);
-  const call = pitch?.payload.call ?? "S";
-  const track = useMemo(() => buildPitch(call), [call]);
+  const track = useMemo(() => (pitch ? buildPitch(pitch.payload.call) : null), [pitch]);
 
   useEffect(() => {
     if (pitch) setReplay((value) => value + 1);
   }, [pitch?.id]);
+
+  if (!pitch || !track) {
+    return (
+      <section className="panel overflow-hidden" aria-label="Visor de pitcheo">
+        <header className="flex items-center justify-between gap-3 border-b border-nightline px-5 py-3">
+          <h2 className="text-sm font-semibold">Último lanzamiento</h2>
+        </header>
+        <div className="grid aspect-[4/3] place-items-center bg-[#07100b]">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
+            Sin lanzamientos registrados
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel overflow-hidden" aria-label="Visor de pitcheo">
