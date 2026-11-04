@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Hanken_Grotesk } from "next/font/google";
+import "@/theme/tokens.css";
+import "@/theme/leagues/metropolitana.css";
+import "@/theme/teams.css";
 import "./globals.css";
 
 const barlow = Barlow_Condensed({

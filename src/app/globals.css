@@ -118,29 +118,24 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
-    background: var(--color-night);
-    color: var(--color-chalk);
+    background: var(--olb-surface, #f9f9ff);
+    color: var(--olb-ink, #141c28);
+    color-scheme: light;
     font-family: var(--font-sans);
     min-height: 100dvh;
   }
 
-  body:has(.portal-shell) {
-    background: var(--olb-surface);
-    color: var(--olb-ink);
-    color-scheme: light;
-  }
-
   ::selection {
-    background: var(--color-grass);
-    color: var(--color-chalk);
+    background: var(--olb-accent);
+    color: var(--olb-band-ink);
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-ember);
+    outline: 2px solid var(--olb-accent);
     outline-offset: 3px;
   }
 }
@@ -155,14 +150,6 @@
     background: color-mix(in srgb, var(--color-panel) 88%, transparent);
     border: 1px solid var(--color-nightline);
     border-radius: 0.75rem;
-  }
-
-  .viewer-shell {
-    background:
-      radial-gradient(70rem 40rem at 50% -20rem, #123522 0%, transparent 70%),
-      var(--color-night);
-    color: var(--color-chalk);
-    color-scheme: dark;
   }
 
   .portal-shell {
