@@ -76,8 +76,7 @@ export function PortalLedger({ games }: { games: readonly PortalGame[] }) {
           }
         />
         <p className="mb-3 max-w-3xl font-body text-body-sm text-ink-muted">
-          Cada fila es un juego del registro append-only. No hay tabla de posiciones: la API
-          todavía no expone el dominio de clasificación.
+          Cada fila es un juego del registro append-only.
         </p>
 
         {rows.length === 0 ? (

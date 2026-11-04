@@ -7,6 +7,7 @@ import { PortalOffline } from "@/components/portal/offline";
 import { PortalPatrimony } from "@/components/portal/patrimony";
 import { PortalScoreCards } from "@/components/portal/score-cards";
 import { PortalSlate } from "@/components/portal/slate";
+import { PortalStandings } from "@/components/portal/standings";
 import { PortalStatusBar } from "@/components/portal/status-bar";
 import { PortalTicker } from "@/components/portal/ticker";
 import { fetchPortalData, selectFeatured } from "@/lib/league";
@@ -42,6 +43,7 @@ export default async function PortalPage() {
         <PortalFeaturedGame entry={selectFeatured(data.games)} />
         <PortalSlate games={data.games} />
         <PortalLedger games={data.games} />
+        <PortalStandings standings={data.standings} />
         <PortalPatrimony />
       </main>
       <PortalFooter />

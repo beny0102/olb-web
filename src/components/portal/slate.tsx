@@ -1,17 +1,18 @@
 import Link from "next/link";
-import { eventDetail, eventTitle, suspendedTitle } from "@/lib/format";
+import { eventDetail, eventTitle, formatScheduledStart, suspendedTitle } from "@/lib/format";
 import {
   gameStatus,
   lastClosedInning,
   lastEvent,
+  orderSlate,
   scoreLabel,
-  selectSlate,
   shortGameId,
   teamAbbr,
-  topGames,
   type PortalGame,
 } from "@/lib/league";
 import { Arrow, InningMark, SectionHeader, StatusBadge } from "./primitives";
+
+const SLATE_LIMIT = 4;
 
 function accentFor(entry: PortalGame): string {
   return gameStatus(entry) === "live" ? "border-t-accent" : "border-t-band";
@@ -20,6 +21,9 @@ function accentFor(entry: PortalGame): string {
 function SlateCard({ entry }: { entry: PortalGame }) {
   const state = entry.state;
   const event = lastEvent(entry);
+  const scheduled = gameStatus(entry) === "scheduled";
+  const start = formatScheduledStart(entry.game.scheduledStart);
+  const venue = entry.game.venue?.trim() || null;
   const suspended = state?.status === "suspended" ? (suspendedTitle(event) ?? "Suspendido") : null;
 
   return (
@@ -43,9 +47,15 @@ function SlateCard({ entry }: { entry: PortalGame }) {
             {entry.game.awayTeam} vs {entry.game.homeTeam} · {shortGameId(entry.game.id)}
           </span>
         </div>
-        <span className="shrink-0 font-display text-tabular-stats text-ink-muted">
-          {state && state.status !== "scheduled" ? `${state.score.away}–${state.score.home}` : "—"}
-        </span>
+        {scheduled ? (
+          <span className="shrink-0 text-right font-display text-title-md uppercase text-ink">
+            {start ?? "Por confirmar"}
+          </span>
+        ) : (
+          <span className="shrink-0 font-display text-tabular-stats text-ink-muted">
+            {state ? `${state.score.away}–${state.score.home}` : "—"}
+          </span>
+        )}
       </div>
 
       <div className="mt-3 space-y-2 border-t border-line pt-2">
@@ -58,6 +68,12 @@ function SlateCard({ entry }: { entry: PortalGame }) {
               : ""}
           </span>
         </div>
+        {scheduled ? (
+          <div className="flex items-start justify-between gap-2 font-label-caps text-label-caps uppercase">
+            <span className="shrink-0 text-ink-muted">Sede</span>
+            <span className="text-right text-ink">{venue ?? "Por confirmar"}</span>
+          </div>
+        ) : null}
         <div className="flex items-start justify-between gap-2 font-label-caps text-label-caps uppercase">
           <span className="shrink-0 text-ink-muted">Último evento</span>
           <span className="text-right text-ink">
@@ -78,10 +94,10 @@ function SlateCard({ entry }: { entry: PortalGame }) {
 }
 
 export function PortalSlate({ games }: { games: readonly PortalGame[] }) {
-  const slate = selectSlate(games);
+  const slate = orderSlate(games).slice(0, SLATE_LIMIT);
   const hasScheduled = games.some((entry) => gameStatus(entry) === "scheduled");
 
-  if (!hasScheduled && games.length <= topGames(games).length) return null;
+  if (!hasScheduled && games.length <= SLATE_LIMIT) return null;
 
   return (
     <section
