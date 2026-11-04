@@ -1,0 +1,13 @@
+/*
+ * Club identities.
+ * Each block overrides semantic tokens only; the league theme and DESIGN.md
+ * keep every structural rule. A club without a block inherits the league theme.
+ * See THEMING.md before adding a club.
+ */
+[data-team="tiburones"] {
+  --olb-accent: #0e5c5a;
+  --olb-accent-soft: #d8ece9;
+  --olb-band: #062f2e;
+  --olb-band-muted: #9ec4bf;
+  --olb-gold: #c9a646;
+}

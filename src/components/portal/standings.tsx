@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { formatPct } from "@/lib/format";
-import { visibleStandings } from "@/lib/league";
+import { teamSlug, visibleStandings } from "@/lib/league";
 import type { Standings } from "@/lib/types";
 import { SectionHeader } from "./primitives";
 
@@ -62,7 +63,12 @@ export function PortalStandings({ standings }: { standings: Standings | null }) 
                     scope="row"
                     className="px-3 py-3 font-display text-title-lg uppercase text-ink"
                   >
-                    {row.team}
+                    <Link
+                      href={`/equipos/${teamSlug(row.team)}`}
+                      className="transition-colors hover:text-accent hover:underline"
+                    >
+                      {row.team}
+                    </Link>
                   </th>
                   <td className="px-3 py-3 text-right font-display text-tabular-stats text-ink">
                     {row.w}

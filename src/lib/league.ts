@@ -200,6 +200,26 @@ export function shortGameId(id: string): string {
   return id.replace(/-/g, "").slice(-8).toUpperCase();
 }
 
+/** Stable URL slug for a club name; accents are folded, never guessed. */
+export function teamSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Resolves a slug against every club name the API exposed, or null. */
+export function teamFromSlug(slug: string, names: readonly string[]): string | null {
+  const wanted = slug.trim().toLowerCase();
+  if (wanted.length === 0) return null;
+  for (const name of names) {
+    if (teamSlug(name) === wanted) return name;
+  }
+  return null;
+}
+
 /** Highest inning closed in the log, used instead of the projection's next inning. */
 export function lastClosedInning(events: readonly Event[]): number | null {
   let last: number | null = null;

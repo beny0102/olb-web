@@ -40,6 +40,7 @@ The league portal follows [`DESIGN.md`](DESIGN.md) — **Heritage Athletic Gover
 chalk surfaces, sovereign navy bands, competition crimson, Barlow Condensed display and
 Hanken Grotesk body, square corners and structural rules instead of shadows. `DESIGN.md`
 is the source of truth for any UI change; `src/theme/tokens.css` holds the semantic values.
+League and club rebrands are documented in [`THEMING.md`](THEMING.md).
 
 ## Quick start
 

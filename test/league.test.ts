@@ -7,6 +7,8 @@ import {
   selectFeatured,
   selectSlate,
   teamAbbr,
+  teamFromSlug,
+  teamSlug,
   type PortalGame,
 } from "@/lib/league";
 import type { Event, GameRecord, GameState } from "@/lib/types";
@@ -54,6 +56,23 @@ describe("teamAbbr", () => {
 
   it("falls back instead of returning an empty mark", () => {
     expect(teamAbbr("   ")).toBe("OLB");
+  });
+});
+
+describe("club slugs", () => {
+  it("folds accents and joins words with a dash", () => {
+    expect(teamSlug("Cañeros")).toBe("caneros");
+    expect(teamSlug("Leones del Norte")).toBe("leones-del-norte");
+  });
+
+  it("round-trips a slug back to the club name the API exposed", () => {
+    const names = ["Marlins", "Leones del Norte"];
+    expect(teamFromSlug(teamSlug("Leones del Norte"), names)).toBe("Leones del Norte");
+    expect(teamFromSlug("caneros", ["Cañeros"])).toBe("Cañeros");
+  });
+
+  it("returns null for an unknown slug", () => {
+    expect(teamFromSlug("tiburones", ["Marlins", "Leones del Norte"])).toBeNull();
   });
 });
 

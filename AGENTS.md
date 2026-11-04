@@ -22,4 +22,6 @@ Governance**). Read it before any UI change, together with the approved referenc
   body and labels. `label-caps` is uppercase, 11/14, tracking 0.08em.
 - Missing domain data (standings, rosters, stats, video) gets an empty state or is
   removed. Never invent scores, players or classifications.
+- Theme layers are base → league → team (user reserved); rebrand a club in one
+  block of `src/theme/teams.css`, never in components. See `THEMING.md`.
 - Verify computed styles and screenshots at 1280 and 390 before committing.

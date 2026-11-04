@@ -1,5 +1,6 @@
 import "@/theme/tokens.css";
 import "@/theme/leagues/metropolitana.css";
+import "@/theme/teams.css";
 
 export default function PortalLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

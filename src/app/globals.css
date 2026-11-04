@@ -9,8 +9,12 @@
   --color-muted: #94a39a;
   --color-grass: #2e7d54;
   --color-ember: #e06a45;
+}
 
-  /* League portal — Heritage Athletic Governance (DESIGN.md) */
+@theme inline {
+  /* League portal — Heritage Athletic Governance (DESIGN.md).
+     Aliases are inline so scoped theme layers (`data-league`, `data-team`) can
+     override the `--olb-*` values without redefining every Tailwind token. */
   --color-surface: var(--olb-surface);
   --color-surface-low: var(--olb-surface-low);
   --color-raised: var(--olb-surface-raised);
@@ -26,7 +30,9 @@
   --color-line-strong: var(--olb-line-strong);
   --color-table-head: var(--olb-table-head);
   --color-table-alt: var(--olb-table-alt);
+}
 
+@theme {
   /* Typography */
   --font-sans: var(--olb-font-body, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
   --font-display: var(--olb-font-display, "Arial Narrow", ui-sans-serif, sans-serif);
