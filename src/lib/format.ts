@@ -109,6 +109,41 @@ export function formatTime(iso: string): string {
   return dateFormat.format(new Date(iso));
 }
 
+/**
+ * Scheduled starts arrive as `...Z` from the memory store and `...000Z` from
+ * Postgres. Date.parse handles both; anything else is reported as missing
+ * rather than rendered as "Invalid Date".
+ */
+export function formatScheduledStart(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+/** Always nine inning columns; shorter payloads are padded with nulls. */
+export function formatLinescore(line: readonly (number | null)[]): string[] {
+  const length = Math.max(9, line.length);
+  return Array.from({ length }, (_, index) => {
+    const runs = line[index];
+    return runs === null || runs === undefined ? "–" : String(runs);
+  });
+}
+
+/** Baseball convention: a leading zero is dropped (`.667`, `1.000`). */
+export function formatPct(pct: number): string {
+  if (!Number.isFinite(pct)) return "—";
+  const fixed = pct.toFixed(3);
+  return fixed.startsWith("0") ? fixed.slice(1) : fixed;
+}
+
 export function statusLabel(status: GameState["status"]): string {
   switch (status) {
     case "scheduled":
