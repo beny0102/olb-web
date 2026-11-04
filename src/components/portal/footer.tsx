@@ -97,8 +97,8 @@ export function PortalFooter() {
               Registro
             </div>
             <p className="font-body text-body-sm text-ink-muted">
-              Sin clasificación, alineaciones ni estadísticas de jugadores: esos dominios todavía
-              no existen en la API.
+              Sin alineaciones ni estadísticas de jugadores: esos dominios todavía no existen en la
+              API.
             </p>
             <div className="mt-3 font-label-caps text-label-caps uppercase text-accent">
               Apache-2.0 · sin afiliación con MLB
