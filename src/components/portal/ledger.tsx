@@ -82,38 +82,43 @@ export function PortalLedger({ games }: { games: readonly PortalGame[] }) {
         {rows.length === 0 ? (
           <p className="font-body text-body-sm text-ink-muted">Sin juegos registrados.</p>
         ) : (
-          <div className="overflow-x-auto border border-line-strong bg-raised">
-            <table className="w-full min-w-[52rem] border-collapse text-left">
-              <caption className="sr-only">Registro de la jornada</caption>
-              <thead>
-                <tr className="border-b-2 border-band bg-table-head font-label-caps text-label-caps uppercase text-ink-muted">
-                  <th scope="col" className="px-3 py-2">
-                    Juego
-                  </th>
-                  <th scope="col" className="px-3 py-2">
-                    Estado
-                  </th>
-                  <th scope="col" className="px-3 py-2">
-                    Marcador
-                  </th>
-                  <th scope="col" className="px-3 py-2">
-                    Entrada
-                  </th>
-                  <th scope="col" className="px-3 py-2">
-                    Último evento
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-right">
-                    Acta
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((entry) => (
-                  <LedgerRow key={entry.game.id} entry={entry} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <p className="mb-2 font-label-caps text-label-caps uppercase text-ink-muted md:hidden">
+              Desliza para ver la tabla completa →
+            </p>
+            <div className="overflow-x-auto border border-line-strong bg-raised">
+              <table className="w-full min-w-[52rem] border-collapse text-left">
+                <caption className="sr-only">Registro de la jornada</caption>
+                <thead>
+                  <tr className="border-b-2 border-band bg-table-head font-label-caps text-label-caps uppercase text-ink-muted">
+                    <th scope="col" className="px-3 py-2">
+                      Juego
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      Estado
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      Marcador
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      Entrada
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      Último evento
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-right">
+                      Acta
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((entry) => (
+                    <LedgerRow key={entry.game.id} entry={entry} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </section>

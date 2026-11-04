@@ -28,6 +28,9 @@ export function PortalStandings({ standings }: { standings: Standings | null }) 
           perdidos; CF y CC, carreras anotadas y recibidas.
         </p>
 
+        <p className="mb-2 font-label-caps text-label-caps uppercase text-ink-muted md:hidden">
+          Desliza para ver la tabla completa →
+        </p>
         <div className="overflow-x-auto border border-line-strong bg-raised">
           <table className="w-full min-w-[38rem] border-collapse text-left">
             <caption className="sr-only">Tabla de posiciones de la liga</caption>

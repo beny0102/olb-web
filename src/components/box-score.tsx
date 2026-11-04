@@ -50,6 +50,9 @@ export function BoxScorePanel({
         <span className="font-label-caps text-label-caps uppercase text-ink-muted">R · H · E</span>
       </header>
 
+      <p className="mb-2 px-5 font-label-caps text-label-caps uppercase text-ink-muted md:hidden">
+        Desliza para ver la tabla completa →
+      </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[34rem] border-collapse text-center">
           <caption className="sr-only">

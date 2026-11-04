@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eventDetail, eventTitle } from "@/lib/format";
+import { callLabel, eventDetail, eventTitle } from "@/lib/format";
 import {
   gameHeadline,
   gameStatus,
@@ -72,7 +72,9 @@ function Telem({ entry }: { entry: PortalGame }) {
         <div>
           <dt className="font-label-caps text-label-caps uppercase text-band-muted">Último pitcheo</dt>
           <dd className="font-body text-body-sm font-semibold">
-            {pitch && pitch.type === "pitch" ? `#${pitch.payload.pitchNo} · ${pitch.payload.call}` : "Sin registro"}
+            {pitch && pitch.type === "pitch"
+              ? `#${pitch.payload.pitchNo} · ${callLabel(pitch.payload.call)}`
+              : "Sin registro"}
           </dd>
         </div>
       </dl>
@@ -159,13 +161,7 @@ export function PortalFeaturedGame({ entry }: { entry: PortalGame | null }) {
               </p>
               {play && play.type === "ball_in_play" ? (
                 <p className="mt-1 font-body text-body-sm text-ink-muted">
-                  Código {play.payload.code} ·{" "}
-                  {eventDetail(play) ??
-                    `${play.payload.runsBattedIn} ${
-                      play.payload.runsBattedIn === 1 ? "carrera" : "carreras"
-                    }`}{" "}
-                  ·
-                  secuencia {play.seq}
+                  {eventDetail(play) ?? `Código ${play.payload.code}`} · secuencia {play.seq}
                 </p>
               ) : null}
             </div>
