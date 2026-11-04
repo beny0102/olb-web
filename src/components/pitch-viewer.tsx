@@ -9,11 +9,8 @@ import type { Event } from "@/lib/types";
 const PitchScene = dynamic(() => import("./pitch-scene"), {
   ssr: false,
   loading: () => (
-    <div
-      role="status"
-      className="absolute inset-0 grid place-items-center bg-[#07100b]"
-    >
-      <span className="font-mono text-[11px] uppercase tracking-widest text-muted">
+    <div role="status" className="absolute inset-0 grid place-items-center bg-band">
+      <span className="font-label-caps text-label-caps uppercase text-band-ink/70">
         Cargando escena…
       </span>
     </div>
@@ -32,12 +29,12 @@ export function PitchViewer({ pitch }: { pitch: PitchEvent | null }) {
 
   if (!pitch || !track) {
     return (
-      <section className="panel overflow-hidden" aria-label="Visor de pitcheo">
-        <header className="flex items-center justify-between gap-3 border-b border-nightline px-5 py-3">
-          <h2 className="text-sm font-semibold">Último lanzamiento</h2>
+      <section className="overflow-hidden border border-line-strong bg-raised" aria-label="Visor de pitcheo">
+        <header className="border-b border-line px-5 py-3">
+          <h2 className="font-display text-title-md uppercase text-ink">Último lanzamiento</h2>
         </header>
-        <div className="grid aspect-[4/3] place-items-center bg-[#07100b]">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
+        <div className="grid aspect-[4/3] place-items-center bg-surface-low">
+          <p className="font-label-caps text-label-caps uppercase text-ink-muted">
             Sin lanzamientos registrados
           </p>
         </div>
@@ -46,41 +43,43 @@ export function PitchViewer({ pitch }: { pitch: PitchEvent | null }) {
   }
 
   return (
-    <section className="panel overflow-hidden" aria-label="Visor de pitcheo">
-      <header className="flex items-center justify-between gap-3 border-b border-nightline px-5 py-3">
-        <h2 className="text-sm font-semibold">Último lanzamiento</h2>
-        <span className="rounded border border-nightline px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+    <section className="overflow-hidden border border-line-strong bg-raised" aria-label="Visor de pitcheo">
+      <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
+        <h2 className="font-display text-title-md uppercase text-ink">Último lanzamiento</h2>
+        <span className="border border-line-strong px-2 py-0.5 font-label-caps text-label-caps uppercase text-ink-muted">
           Trayectoria sintética
         </span>
       </header>
 
-      <div className="relative aspect-[4/3] bg-[#07100b]">
+      <div className="relative aspect-[4/3] bg-band">
         <PitchScene samples={track.samples} replayKey={replay} />
 
-        <div className="pointer-events-none absolute left-4 top-4 font-mono">
-          <p className="score-num text-3xl font-semibold">
+        <div className="pointer-events-none absolute left-4 top-4">
+          <p className="score-num font-display text-headline-md text-band-ink">
             {track.speedKph}
-            <span className="ml-1 text-xs font-normal text-muted">km/h</span>
+            <span className="ml-1 font-label-caps text-label-caps uppercase text-band-ink/70">
+              km/h
+            </span>
           </p>
-          <p className="text-xs text-muted">{track.breakCm} cm de break</p>
+          <p className="font-body text-body-sm text-band-ink/70">{track.breakCm} cm de break</p>
         </div>
 
         <button
           type="button"
           onClick={() => setReplay((value) => value + 1)}
-          className="absolute bottom-3 right-3 rounded-md border border-chalk/30 bg-night/70 px-3 py-1.5 font-mono text-xs text-chalk backdrop-blur transition-colors hover:border-ember hover:text-ember"
+          className="absolute bottom-3 right-3 border border-band-ink/20 bg-band px-3 py-1.5 font-label-caps text-label-caps uppercase text-band-ink transition-colors hover:border-accent"
         >
           ↻ Repetir
         </button>
       </div>
 
-      <footer className="flex items-center justify-between gap-3 px-5 py-3 text-xs text-muted">
+      <footer className="flex items-center justify-between gap-3 border-t border-line px-5 py-3 font-body text-body-sm text-ink-muted">
         <span>
           {pitch
             ? `${callLabel(pitch.payload.call)} · ${pitch.payload.count.balls}-${pitch.payload.count.strikes}`
             : "Sin lanzamientos todavía"}
         </span>
-        <span className="font-mono">vista de receptor</span>
+        <span className="font-label-caps text-label-caps uppercase">vista de receptor</span>
       </footer>
     </section>
   );

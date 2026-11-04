@@ -8,13 +8,13 @@ export function BasesDiamond({ bases }: { bases: GameState["bases"] }) {
   };
 
   const baseClass = (on: boolean) =>
-    on ? "fill-ember stroke-ember" : "fill-transparent stroke-nightline";
+    on ? "fill-gold stroke-gold" : "fill-transparent stroke-band-ink/40";
 
   return (
     <svg viewBox="0 0 100 100" className="size-24" role="img" aria-label="Bases ocupadas">
       <path
         d="M50 90 L90 50 L50 10 L10 50 Z"
-        className="fill-none stroke-nightline"
+        className="fill-none stroke-band-ink/30"
         strokeWidth="2"
         strokeDasharray="4 5"
       />
@@ -38,12 +38,12 @@ export function BasesDiamond({ bases }: { bases: GameState["bases"] }) {
 export function CountIndicator({ count, outs }: { count: GameState["count"]; outs: number }) {
   const dots = (total: number, filled: number, color: string, label: string) => (
     <div className="flex items-center gap-2">
-      <span className="w-12 text-[11px] uppercase tracking-widest text-muted">{label}</span>
+      <span className="w-12 font-label-caps text-label-caps uppercase text-band-muted">{label}</span>
       <span className="flex gap-1.5" aria-label={`${filled} de ${total}`}>
         {Array.from({ length: total }, (_, index) => (
           <span
             key={index}
-            className={`size-2.5 rounded-full border ${index < filled ? color : "border-nightline bg-transparent"}`}
+            className={`size-2.5 border ${index < filled ? color : "border-band-ink/30 bg-transparent"}`}
           />
         ))}
       </span>
@@ -52,9 +52,9 @@ export function CountIndicator({ count, outs }: { count: GameState["count"]; out
 
   return (
     <div className="flex flex-col gap-2">
-      {dots(3, count.balls, "border-grass bg-grass", "Bolas")}
-      {dots(2, count.strikes, "border-ember bg-ember", "Strikes")}
-      {dots(2, outs, "border-chalk bg-chalk", "Outs")}
+      {dots(3, count.balls, "border-gold bg-gold", "Bolas")}
+      {dots(2, count.strikes, "border-accent bg-accent", "Strikes")}
+      {dots(2, outs, "border-band-ink bg-band-ink", "Outs")}
     </div>
   );
 }

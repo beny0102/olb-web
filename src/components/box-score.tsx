@@ -5,29 +5,31 @@ function TeamRow({
   name,
   side,
   line,
+  alt,
 }: {
   name: string;
   side: "Visitante" | "Local";
   line: BoxScore["away"];
+  alt: boolean;
 }) {
   const cells = formatLinescore(line.linescore);
 
   return (
-    <tr className="border-b border-nightline last:border-b-0">
+    <tr className={`border-b border-line last:border-b-0 ${alt ? "bg-table-alt" : "bg-raised"}`}>
       <th scope="row" className="px-3 py-2 text-left">
-        <span className="block text-sm font-medium text-chalk">{name}</span>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted">{side}</span>
+        <span className="block font-display text-title-md uppercase text-ink">{name}</span>
+        <span className="font-label-caps text-label-caps uppercase text-ink-muted">{side}</span>
       </th>
       {cells.map((value, index) => (
-        <td key={index} className="px-2 py-2 font-mono text-sm tabular-nums text-chalk">
+        <td key={index} className="px-2 py-2 font-display text-tabular-stats text-ink">
           {value}
         </td>
       ))}
-      <td className="border-l border-nightline px-2 py-2 font-mono text-sm font-semibold tabular-nums text-chalk">
+      <td className="border-l border-line px-2 py-2 font-display text-tabular-stats text-ink">
         {line.runs}
       </td>
-      <td className="px-2 py-2 font-mono text-sm tabular-nums text-chalk">{line.hits}</td>
-      <td className="px-2 py-2 font-mono text-sm tabular-nums text-chalk">{line.errors}</td>
+      <td className="px-2 py-2 font-display text-tabular-stats text-ink">{line.hits}</td>
+      <td className="px-2 py-2 font-display text-tabular-stats text-ink">{line.errors}</td>
     </tr>
   );
 }
@@ -42,10 +44,10 @@ export function BoxScorePanel({
   const innings = formatLinescore(boxScore.home.linescore);
 
   return (
-    <section className="panel" aria-label="Línea de anotación">
-      <header className="flex items-center justify-between border-b border-nightline px-5 py-3">
-        <h2 className="text-sm font-semibold">Línea de anotación</h2>
-        <span className="font-mono text-[11px] text-muted">R · H · E</span>
+    <section className="border border-line-strong bg-raised" aria-label="Línea de anotación">
+      <header className="flex items-center justify-between border-b-2 border-band bg-table-head px-5 py-3">
+        <h2 className="font-display text-title-md uppercase text-ink">Línea de anotación</h2>
+        <span className="font-label-caps text-label-caps uppercase text-ink-muted">R · H · E</span>
       </header>
 
       <div className="overflow-x-auto">
@@ -55,7 +57,7 @@ export function BoxScorePanel({
             errores
           </caption>
           <thead>
-            <tr className="border-b border-nightline font-mono text-[10px] uppercase tracking-wider text-muted">
+            <tr className="border-b border-line bg-table-head font-label-caps text-label-caps uppercase text-ink-muted">
               <th scope="col" className="px-3 py-2 text-left">
                 Equipo
               </th>
@@ -64,20 +66,20 @@ export function BoxScorePanel({
                   {index + 1}
                 </th>
               ))}
-              <th scope="col" className="border-l border-nightline px-2 py-2 text-chalk">
+              <th scope="col" className="border-l border-line px-2 py-2 text-ink">
                 R
               </th>
-              <th scope="col" className="px-2 py-2 text-chalk">
+              <th scope="col" className="px-2 py-2 text-ink">
                 H
               </th>
-              <th scope="col" className="px-2 py-2 text-chalk">
+              <th scope="col" className="px-2 py-2 text-ink">
                 E
               </th>
             </tr>
           </thead>
           <tbody>
-            <TeamRow name={game.awayTeam} side="Visitante" line={boxScore.away} />
-            <TeamRow name={game.homeTeam} side="Local" line={boxScore.home} />
+            <TeamRow name={game.awayTeam} side="Visitante" line={boxScore.away} alt={false} />
+            <TeamRow name={game.homeTeam} side="Local" line={boxScore.home} alt />
           </tbody>
         </table>
       </div>

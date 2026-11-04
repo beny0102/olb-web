@@ -17,36 +17,46 @@ const CONNECTION_LABEL: Record<Connection, string> = {
   demo: "Reproducción estática",
 };
 
+const CONNECTION_MARK: Record<Connection, string> = {
+  live: "bg-accent",
+  offline: "bg-accent",
+  demo: "bg-ink-muted",
+};
+
 function ScheduledGame({ game }: { game: GameRecord }) {
   const start = formatScheduledStart(game.scheduledStart);
   const venue = game.venue?.trim() || null;
 
   return (
-    <section className="panel p-6 sm:p-8" aria-label="Juego programado">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
-        Juego programado
-      </p>
-      <h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
-        {game.awayTeam} <span className="text-muted">vs</span> {game.homeTeam}
-      </h1>
+    <section className="border border-line-strong bg-raised" aria-label="Juego programado">
+      <header className="border-b-4 border-band bg-band px-6 py-4 text-band-ink">
+        <p className="font-label-caps text-label-caps uppercase text-band-muted">
+          Juego programado
+        </p>
+        <h1 className="mt-1 font-display text-headline-sm uppercase text-band-ink sm:text-headline-md">
+          {game.awayTeam} <span className="text-band-muted">vs</span> {game.homeTeam}
+        </h1>
+      </header>
 
-      <p className="mt-5 border-l-2 border-ember pl-3 text-sm font-medium text-chalk">
-        Aún no comienza
-      </p>
-      <p className="mt-1 max-w-xl pl-3 text-sm leading-relaxed text-muted">
-        El marcador y la línea de anotación aparecerán cuando el acta registre el primer evento.
-      </p>
+      <div className="px-6 py-6 sm:px-8 sm:py-8">
+        <p className="border-l-2 border-accent pl-3 font-body text-body-md font-semibold text-ink">
+          Aún no comienza
+        </p>
+        <p className="mt-1 max-w-xl pl-3 font-body text-body-sm leading-relaxed text-ink-muted">
+          El marcador y la línea de anotación aparecerán cuando el acta registre el primer evento.
+        </p>
 
-      <dl className="mt-6 grid gap-x-6 gap-y-3 border-t border-nightline pt-4 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="text-[11px] uppercase tracking-widest text-muted">Inicio</dt>
-          <dd className="mt-1 text-chalk">{start ?? "Por confirmar"}</dd>
-        </div>
-        <div>
-          <dt className="text-[11px] uppercase tracking-widest text-muted">Sede</dt>
-          <dd className="mt-1 text-chalk">{venue ?? "Por confirmar"}</dd>
-        </div>
-      </dl>
+        <dl className="mt-6 grid gap-x-6 gap-y-3 border-t border-line pt-4 sm:grid-cols-2">
+          <div>
+            <dt className="font-label-caps text-label-caps uppercase text-ink-muted">Inicio</dt>
+            <dd className="mt-1 font-body text-body-md text-ink">{start ?? "Por confirmar"}</dd>
+          </div>
+          <div>
+            <dt className="font-label-caps text-label-caps uppercase text-ink-muted">Sede</dt>
+            <dd className="mt-1 font-body text-body-md text-ink">{venue ?? "Por confirmar"}</dd>
+          </div>
+        </dl>
+      </div>
     </section>
   );
 }
@@ -116,25 +126,19 @@ export function LiveGame({
   }, [events]);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <span
-          className={`inline-flex items-center gap-2 font-mono text-[11px] ${
-            connection === "offline" ? "text-ember" : "text-muted"
+          className={`inline-flex items-center gap-2 font-label-caps text-label-caps uppercase ${
+            connection === "offline" ? "text-accent" : "text-ink-muted"
           }`}
         >
-          <span
-            className={`size-1.5 rounded-full ${
-              connection === "offline"
-                ? "bg-ember"
-                : connection === "demo"
-                  ? "bg-muted"
-                  : "animate-pulse bg-grass"
-            }`}
-          />
+          <span className={`size-2 ${CONNECTION_MARK[connection]}`} aria-hidden="true" />
           {CONNECTION_LABEL[connection]}
         </span>
-        <span className="font-mono text-[11px] text-muted">seq {state.lastSeq}</span>
+        <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+          seq {state.lastSeq}
+        </span>
       </div>
 
       {state.status === "scheduled" ? (
@@ -152,30 +156,40 @@ export function LiveGame({
           <div className="flex min-w-0 flex-col gap-6">
             <PitchViewer pitch={lastPitch} />
 
-            <section className="panel p-5" aria-label="Detalles técnicos">
-              <h2 className="text-sm font-semibold">Detalles</h2>
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <section className="border border-line-strong bg-raised p-5" aria-label="Detalles técnicos">
+              <h2 className="font-display text-title-md uppercase text-ink">Detalles</h2>
+              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
                 <div>
-                  <dt className="text-[11px] uppercase tracking-widest text-muted">Contrato</dt>
-                  <dd className="mt-1 font-mono text-xs">olb.event/1</dd>
+                  <dt className="font-label-caps text-label-caps uppercase text-ink-muted">
+                    Contrato
+                  </dt>
+                  <dd className="mt-1 font-mono text-body-sm text-ink">olb.event/1</dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] uppercase tracking-widest text-muted">Eventos</dt>
-                  <dd className="mt-1 font-mono text-xs">{events.length}</dd>
+                  <dt className="font-label-caps text-label-caps uppercase text-ink-muted">
+                    Eventos
+                  </dt>
+                  <dd className="mt-1 font-display text-tabular-stats text-ink">{events.length}</dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] uppercase tracking-widest text-muted">Último seq</dt>
-                  <dd className="mt-1 font-mono text-xs">{state.lastSeq}</dd>
+                  <dt className="font-label-caps text-label-caps uppercase text-ink-muted">
+                    Último seq
+                  </dt>
+                  <dd className="mt-1 font-display text-tabular-stats text-ink">{state.lastSeq}</dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] uppercase tracking-widest text-muted">Fuente</dt>
-                  <dd className="mt-1 font-mono text-xs">{demo ? "demo estática" : "olb-api"}</dd>
+                  <dt className="font-label-caps text-label-caps uppercase text-ink-muted">
+                    Fuente
+                  </dt>
+                  <dd className="mt-1 font-mono text-body-sm text-ink">
+                    {demo ? "demo estática" : "olb-api"}
+                  </dd>
                 </div>
               </dl>
-              <p className="mt-4 border-t border-nightline pt-4 text-xs leading-relaxed text-muted">
+              <p className="mt-4 border-t border-line pt-4 font-body text-body-sm leading-relaxed text-ink-muted">
                 La trayectoria del pitcheo es sintética hasta que{" "}
-                <span className="font-mono">olb-vision</span> entregue tracks calibrados. El
-                marcador y el conteo sí salen del registro de eventos.
+                <span className="font-mono text-ink">olb-vision</span> entregue tracks calibrados.
+                El marcador y el conteo sí salen del registro de eventos.
               </p>
             </section>
           </div>
