@@ -6,11 +6,23 @@ import {
   fetchState,
   type HealthRecord,
 } from "./api";
+import {
+  fetchLeagueCompetitions,
+  fetchLeagueGames,
+  fetchLeagueSeasons,
+  fetchLeagueStandings,
+  fetchLeagueTeams,
+} from "./league-api";
 import type {
   Event,
   GameRecord,
   GameState,
   GameStatus,
+  LeagueCompetition,
+  LeagueGame,
+  LeagueSeason,
+  LeagueStandingGroup,
+  LeagueTeamSeason,
   Standings,
   StandingsTeam,
 } from "./types";
@@ -21,12 +33,18 @@ export interface PortalGame {
   game: GameRecord;
   state: GameState | null;
   events: Event[];
+  league?: LeagueGame;
 }
 
 export interface PortalData {
   games: PortalGame[];
   health: HealthRecord | null;
   standings: Standings | null;
+  seasons: LeagueSeason[];
+  season: LeagueSeason | null;
+  competitions: LeagueCompetition[];
+  teams: LeagueTeamSeason[];
+  standingGroups: LeagueStandingGroup[];
   fetchedAt: string;
 }
 
@@ -44,15 +62,25 @@ export interface Linescore {
 }
 
 /**
- * Loads everything the portal renders. If the games endpoint is unreachable we
- * return null so the page can show an offline band instead of inventing a
- * schedule or a score. Per-game failures stay local to that game.
+ * Loads everything the portal renders. League reads come first; when the API
+ * has no league data (a memory instance) the legacy `/games` + `/standings`
+ * path keeps the demo alive. `null` means both paths failed, so the page shows
+ * an offline band instead of inventing a schedule or a score.
  */
-export async function fetchPortalData(): Promise<PortalData | null> {
+export async function fetchPortalData(seasonId?: string): Promise<PortalData | null> {
+  const health = await fetchHealth().catch(() => null);
+
   try {
-    const [games, health, standings] = await Promise.all([
+    const league = await fetchLeaguePortalData(seasonId, health);
+    if (league) return league;
+  } catch {
+    // Fall through to the legacy viewer: a missing league catalog is expected
+    // on a memory instance that only has event-log games.
+  }
+
+  try {
+    const [games, standings] = await Promise.all([
       fetchGames(),
-      fetchHealth().catch(() => null),
       fetchStandings().catch(() => null),
     ]);
 
@@ -66,15 +94,112 @@ export async function fetchPortalData(): Promise<PortalData | null> {
       }),
     );
 
-    return { games: bundles, health, standings, fetchedAt: new Date().toISOString() };
+    return {
+      games: bundles,
+      health,
+      standings,
+      seasons: [],
+      season: null,
+      competitions: [],
+      teams: [],
+      standingGroups: legacyStandingGroups(standings),
+      fetchedAt: new Date().toISOString(),
+    };
   } catch {
     return null;
   }
 }
 
-export function gameStatus(entry: PortalGame): GameStatus {
-  return entry.state?.status ?? "scheduled";
+async function fetchLeaguePortalData(
+  seasonId: string | undefined,
+  health: HealthRecord | null,
+): Promise<PortalData | null> {
+  const seasons = await fetchLeagueSeasons();
+  const season =
+    seasons.find((row) => row.id === seasonId) ??
+    seasons.find((row) => row.status === "active") ??
+    seasons[0] ??
+    null;
+  if (!season) return null;
+
+  const [competitions, games, standingGroups] = await Promise.all([
+    fetchLeagueCompetitions(season.id),
+    fetchLeagueGames(season.id),
+    fetchLeagueStandings(season.id),
+  ]);
+  const teams = (
+    await Promise.all(competitions.map((competition) => fetchLeagueTeams(competition.id)))
+  ).flat();
+
+  const bundles = await Promise.all(
+    games.map(async (game): Promise<PortalGame> => {
+      if (game.coverage !== "full") {
+        return { game, state: null, events: [], league: game };
+      }
+      const [state, events] = await Promise.all([
+        fetchState(game.id).catch(() => null),
+        fetchEvents(game.id).catch(() => []),
+      ]);
+      return { game, state, events, league: game };
+    }),
+  );
+
+  return {
+    games: bundles,
+    health,
+    standings: null,
+    seasons,
+    season,
+    competitions,
+    teams,
+    standingGroups,
+    fetchedAt: new Date().toISOString(),
+  };
 }
+
+function legacyStandingGroups(standings: Standings | null): LeagueStandingGroup[] {
+  if (!standings || standings.teams.length < 2) return [];
+  return [
+    {
+      competitionId: "legacy",
+      competitionName: "",
+      teams: standings.teams.map((row) => ({
+        teamSeasonId: row.team,
+        team: row.team,
+        w: row.w,
+        l: row.l,
+        runsFor: row.runsFor,
+        runsAgainst: row.runsAgainst,
+        pct: row.pct,
+        gamesPlayed: row.w + row.l,
+      })),
+    },
+  ];
+}
+
+export function gameStatus(entry: PortalGame): GameStatus {
+  return entry.league?.status ?? entry.state?.status ?? "scheduled";
+}
+
+/** League status/score win; legacy fixtures keep folding from `state`. */
+export function scoreOf(entry: PortalGame): { home: number; away: number } | null {
+  if (entry.league) return entry.league.score;
+  if (!entry.state || entry.state.status === "scheduled") return null;
+  return entry.state.score;
+}
+
+/** Summary and external games have no play-by-play in this system. */
+export function isSummaryGame(entry: PortalGame): boolean {
+  return entry.league !== undefined && entry.league.coverage !== "full";
+}
+
+export function coverageLabel(entry: PortalGame): string {
+  if (entry.league?.coverage === "summary") return "Resumen";
+  if (entry.league?.coverage === "external") return "Fuente externa";
+  return "Acta completa";
+}
+
+export const SUMMARY_NOTE = "Sin play-by-play (cobertura resumen)";
 
 export const STATUS_LABEL: Record<GameStatus, string> = {
   scheduled: "PRÓXIMO",
@@ -235,10 +360,9 @@ export function gameHeadline(entry: PortalGame): string {
   const status = gameStatus(entry);
 
   if (status === "live" || status === "final") {
-    const score = entry.state
-      ? `${entry.state.score.away}–${entry.state.score.home}`
-      : "—–—";
-    return `${status === "live" ? "EN VIVO" : "FINAL"}: ${away} ${score} ${home}`;
+    const score = scoreOf(entry);
+    const line = score ? `${score.away}–${score.home}` : "—–—";
+    return `${status === "live" ? "EN VIVO" : "FINAL"}: ${away} ${line} ${home}`;
   }
 
   return `${entry.game.awayTeam} vs ${entry.game.homeTeam}`;
@@ -268,11 +392,19 @@ export function visibleStandings(standings: Standings | null): StandingsTeam[] {
   return standings.teams;
 }
 
+/** One table per competition; a group below two clubs cannot rank anybody. */
+export function visibleStandingGroups(
+  groups: readonly LeagueStandingGroup[],
+): LeagueStandingGroup[] {
+  return groups.filter((group) => group.teams.length >= 2);
+}
+
 export function scoreLabel(entry: PortalGame): string {
   const away = teamAbbr(entry.game.awayTeam);
   const home = teamAbbr(entry.game.homeTeam);
-  if (!entry.state || entry.state.status === "scheduled") return `${away} @ ${home}`;
-  return `${away} ${entry.state.score.away}, ${home} ${entry.state.score.home}`;
+  const score = scoreOf(entry);
+  if (!score) return `${away} @ ${home}`;
+  return `${away} ${score.away}, ${home} ${score.home}`;
 }
 
 /** A score column shows a dash before first pitch; the matchup belongs in the slate. */

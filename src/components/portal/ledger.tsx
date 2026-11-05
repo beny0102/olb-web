@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { eventDetail, eventTitle } from "@/lib/format";
 import {
+  coverageLabel,
   gameStatus,
+  isSummaryGame,
   lastClosedInning,
   lastEvent,
   ledgerGames,
   ledgerScore,
   shortGameId,
+  SUMMARY_NOTE,
   teamAbbr,
   type PortalGame,
 } from "@/lib/league";
@@ -15,6 +18,7 @@ import { Arrow, InningMark, SectionHeader, StatusBadge } from "./primitives";
 function LedgerRow({ entry }: { entry: PortalGame }) {
   const event = lastEvent(entry);
   const state = entry.state;
+  const summary = isSummaryGame(entry);
   const suspended = gameStatus(entry) === "suspended";
 
   return (
@@ -34,17 +38,29 @@ function LedgerRow({ entry }: { entry: PortalGame }) {
         {ledgerScore(entry)}
       </td>
       <td className="px-3 py-3 font-body text-body-sm text-ink-muted">
-        <InningMark state={state} closedInning={lastClosedInning(entry.events)} />
-        {state && state.status !== "scheduled" && state.status !== "final" && state.status !== "suspended"
-          ? ` · ${state.count.balls}-${state.count.strikes}`
-          : ""}
+        {summary ? (
+          <span>Final · {coverageLabel(entry)}</span>
+        ) : (
+          <>
+            <InningMark state={state} closedInning={lastClosedInning(entry.events)} />
+            {state && state.status !== "scheduled" && state.status !== "final" && state.status !== "suspended"
+              ? ` · ${state.count.balls}-${state.count.strikes}`
+              : ""}
+          </>
+        )}
       </td>
       <td className="max-w-[22rem] px-3 py-3">
         <div className="font-body text-body-sm font-semibold text-ink">
-          {suspended ? "Suspendido" : event ? eventTitle(event) : "Sin eventos"}
+          {summary
+            ? "Resultado oficial"
+            : suspended
+              ? "Suspendido"
+              : event
+                ? eventTitle(event)
+                : "Sin eventos"}
         </div>
         <div className="mt-0.5 font-body text-body-sm text-ink-muted">
-          {event ? eventDetail(event) ?? `Secuencia ${event.seq}` : "—"}
+          {summary ? SUMMARY_NOTE : event ? eventDetail(event) ?? `Secuencia ${event.seq}` : "—"}
         </div>
       </td>
       <td className="px-3 py-3 text-right">

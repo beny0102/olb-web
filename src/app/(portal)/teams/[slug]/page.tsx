@@ -6,11 +6,14 @@ import { PortalHeader } from "@/components/portal/header";
 import { PortalOffline } from "@/components/portal/offline";
 import { Arrow, SectionHeader, StatusBadge } from "@/components/portal/primitives";
 import { formatPct, formatScheduledStart } from "@/lib/format";
+import { fetchTeamSeason } from "@/lib/league-api";
 import {
   fetchPortalData,
   formatTime,
   gameStatus,
+  isSummaryGame,
   orderSlate,
+  scoreOf,
   shortGameId,
   teamAbbr,
   teamFromSlug,
@@ -18,13 +21,14 @@ import {
   type PortalData,
   type PortalGame,
 } from "@/lib/league";
+import type { LeagueRosterEntry, LeagueStandingGroup, LeagueStandingRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Club",
   description:
-    "Acta del club en la Liga Metropolitana de Open League Baseball: récord, próximos juegos y resultados.",
+    "Acta del club en la Liga Metropolitana de Open League Baseball: récord, roster, próximos juegos y resultados.",
 };
 
 function clubGames(games: readonly PortalGame[], team: string): PortalGame[] {
@@ -43,22 +47,117 @@ function side(entry: PortalGame, team: string): "Local" | "Visitante" {
   return entry.game.homeTeam === team ? "Local" : "Visitante";
 }
 
-/** Score oriented to the club first, e.g. `4–2`; `—` when the game has no state. */
+/** Score oriented to the club first, e.g. `4–2`; `—` when the game has no score. */
 function clubScore(entry: PortalGame, team: string): string {
-  if (!entry.state) return "—";
-  const { away, home } = entry.state.score;
-  return entry.game.homeTeam === team ? `${home}–${away}` : `${away}–${home}`;
+  const score = scoreOf(entry);
+  if (!score) return "—";
+  return entry.game.homeTeam === team ? `${score.home}–${score.away}` : `${score.away}–${score.home}`;
 }
 
 function namesIn(data: PortalData): string[] {
-  const standings = data.standings?.teams.map((row) => row.team) ?? [];
+  const teams = data.teams.map((row) => row.teamName);
+  const standings = data.standingGroups.flatMap((group) =>
+    group.teams.map((row) => row.team),
+  );
   const games = data.games.flatMap((entry) => [entry.game.homeTeam, entry.game.awayTeam]);
-  return [...new Set([...standings, ...games])];
+  return [...new Set([...teams, ...standings, ...games])];
 }
 
-export default async function TeamPage({ params }: { params: Promise<{ slug: string }> }) {
+function recordFor(
+  groups: readonly LeagueStandingGroup[],
+  team: string,
+): { row: LeagueStandingRow; group: LeagueStandingGroup } | null {
+  const wanted = teamSlug(team);
+  for (const group of groups) {
+    const row = group.teams.find((entry) => teamSlug(entry.team) === wanted);
+    if (row) return { row, group };
+  }
+  return null;
+}
+
+function Roster({
+  team,
+  roster,
+}: {
+  team: string;
+  roster: readonly LeagueRosterEntry[];
+}) {
+  return (
+    <section
+      aria-labelledby="club-roster-title"
+      className="mx-auto w-full max-w-[1440px] px-4 pb-8 md:px-8"
+    >
+      <SectionHeader
+        id="club-roster-title"
+        kicker="Plantilla registrada"
+        title="Roster"
+        action={
+          <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+            {roster.length} {roster.length === 1 ? "jugador" : "jugadores"}
+          </span>
+        }
+      />
+
+      {roster.length === 0 ? (
+        <p className="border border-line-strong bg-raised p-6 font-body text-body-md text-ink-muted">
+          Sin roster registrado para este club.
+        </p>
+      ) : (
+        <div className="overflow-x-auto border border-line-strong bg-raised">
+          <table className="w-full min-w-[30rem] border-collapse text-left">
+            <caption className="sr-only">Roster registrado de {team}</caption>
+            <thead>
+              <tr className="border-b-2 border-band bg-table-head font-label-caps text-label-caps uppercase text-ink-muted">
+                <th scope="col" className="px-3 py-2">
+                  Dorsal
+                </th>
+                <th scope="col" className="px-3 py-2">
+                  Jugador
+                </th>
+                <th scope="col" className="px-3 py-2">
+                  Posición
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {roster.map((entry) => (
+                <tr
+                  key={entry.id}
+                  className="border-b border-line bg-raised transition-colors even:bg-table-alt hover:bg-surface-low"
+                >
+                  <td className="px-3 py-2 font-display text-tabular-stats text-ink-muted">
+                    {entry.jersey ?? "—"}
+                  </td>
+                  <th
+                    scope="row"
+                    className="px-3 py-2 font-display text-title-md uppercase text-ink"
+                  >
+                    {entry.firstName} {entry.lastName}
+                  </th>
+                  <td className="px-3 py-2 font-label-caps text-label-caps uppercase text-ink-muted">
+                    {entry.primaryPosition ?? "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+export default async function TeamPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
-  const data = await fetchPortalData();
+  const query = await searchParams;
+  const seasonParam = Array.isArray(query.season) ? query.season[0] : query.season;
+  const data = await fetchPortalData(seasonParam);
 
   if (!data) {
     return (
@@ -78,7 +177,24 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
   const live = games.find((entry) => gameStatus(entry) === "live") ?? null;
   const next = games.find((entry) => gameStatus(entry) === "scheduled") ?? null;
   const last = finals[0] ?? null;
-  const record = data.standings?.teams.find((row) => row.team === team) ?? null;
+  const recordInfo = recordFor(data.standingGroups, team);
+  const record = recordInfo?.row ?? null;
+  const teamSeason =
+    data.teams.find(
+      (entry) =>
+        entry.teamName === team ||
+        entry.name === team ||
+        teamSlug(entry.teamName) === teamSlug(team),
+    ) ?? null;
+
+  let roster: LeagueRosterEntry[] = [];
+  if (teamSeason) {
+    try {
+      roster = (await fetchTeamSeason(teamSeason.id)).roster;
+    } catch {
+      roster = [];
+    }
+  }
 
   return (
     <div data-team={teamSlug(team)}>
@@ -90,7 +206,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="bg-accent px-2 py-1 font-label-caps text-label-caps uppercase text-band-ink">
-                    Club · Liga Metropolitana
+                    Club · {recordInfo?.group.competitionName || "Liga Metropolitana"}
                   </span>
                   {live ? <StatusBadge status="live" /> : null}
                   <Link
@@ -108,7 +224,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                   {team}
                 </h1>
 
-                {finals.length > 0 && record ? (
+                {record ? (
                   <dl className="mt-6 grid max-w-md grid-cols-3 gap-4 border-t border-band-ink/20 pt-4">
                     <div>
                       <dt className="font-label-caps text-label-caps uppercase text-band-muted">
@@ -137,9 +253,7 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                   </dl>
                 ) : (
                   <p className="mt-6 border-t border-band-ink/20 pt-4 font-body text-body-md text-band-muted">
-                    {finals.length > 0
-                      ? "Sin clasificación oficial para este club."
-                      : "Sin resultados finales"}
+                    Sin clasificación oficial para este club.
                   </p>
                 )}
               </div>
@@ -185,6 +299,8 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
             </div>
           </div>
         </section>
+
+        <Roster team={team} roster={roster} />
 
         <section
           aria-labelledby="club-games-title"
@@ -234,7 +350,8 @@ export default async function TeamPage({ params }: { params: Promise<{ slug: str
                 <tbody>
                   {games.map((entry) => {
                     const status = gameStatus(entry);
-                    const action = status === "final" ? "Acta" : "Ver";
+                    const summary = isSummaryGame(entry);
+                    const action = summary ? "Resumen" : status === "final" ? "Acta" : "Ver";
                     const start = formatScheduledStart(entry.game.scheduledStart);
                     const startTime =
                       start && entry.game.scheduledStart

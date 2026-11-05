@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { callLabel, eventDetail, eventTitle } from "@/lib/format";
 import {
+  coverageLabel,
   gameHeadline,
   gameStatus,
+  isSummaryGame,
   lastBallInPlay,
   lastClosedInning,
   lastEvent,
   lastPitch,
+  scoreOf,
   shortGameId,
+  SUMMARY_NOTE,
   teamAbbr,
   type PortalGame,
 } from "@/lib/league";
@@ -36,6 +40,35 @@ function FieldMark() {
 }
 
 function Telem({ entry }: { entry: PortalGame }) {
+  if (isSummaryGame(entry)) {
+    const score = scoreOf(entry);
+    return (
+      <div className="max-w-xs border-l-4 border-accent bg-band/95 p-3 text-band-ink shadow-overlay">
+        <div className="mb-2 flex items-center justify-between gap-2 border-b border-band-ink/20 pb-1">
+          <span className="font-label-caps text-label-caps uppercase text-gold">
+            Resultado oficial
+          </span>
+          <StatusBadge status={gameStatus(entry)} />
+        </div>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <div>
+            <dt className="font-label-caps text-label-caps uppercase text-band-muted">Marcador</dt>
+            <dd className="font-display text-title-lg">
+              {score ? `${score.away}–${score.home}` : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-label-caps text-label-caps uppercase text-band-muted">Cobertura</dt>
+            <dd className="font-display text-title-lg uppercase">{coverageLabel(entry)}</dd>
+          </div>
+        </dl>
+        <p className="mt-2 border-t border-band-ink/20 pt-1 font-body text-body-sm text-band-muted">
+          {SUMMARY_NOTE}
+        </p>
+      </div>
+    );
+  }
+
   const state = entry.state;
   const pitch = lastPitch(entry);
   const scoring = state !== null && state.status !== "scheduled";
@@ -102,9 +135,9 @@ export function PortalFeaturedGame({ entry }: { entry: PortalGame | null }) {
     );
   }
 
-  const state = entry.state;
   const play = lastBallInPlay(entry);
   const event = lastEvent(entry);
+  const summary = isSummaryGame(entry);
 
   return (
     <section className="mx-auto w-full max-w-[1440px] px-4 py-8 md:px-8">
@@ -152,14 +185,16 @@ export function PortalFeaturedGame({ entry }: { entry: PortalGame | null }) {
 
             <div className="border-l-4 border-band bg-surface-low p-3">
               <span className="block font-label-caps text-label-caps uppercase text-accent">
-                Última jugada registrada
+                {summary ? "Cobertura del juego" : "Última jugada registrada"}
               </span>
               <p className="mt-1 font-body text-body-md text-ink">
-                {play && play.type === "ball_in_play"
-                  ? play.payload.description?.trim() || `Código ${play.payload.code}`
-                  : "Sin jugadas registradas"}
+                {summary
+                  ? SUMMARY_NOTE
+                  : play && play.type === "ball_in_play"
+                    ? play.payload.description?.trim() || `Código ${play.payload.code}`
+                    : "Sin jugadas registradas"}
               </p>
-              {play && play.type === "ball_in_play" ? (
+              {!summary && play && play.type === "ball_in_play" ? (
                 <p className="mt-1 font-body text-body-sm text-ink-muted">
                   {eventDetail(play) ?? `Código ${play.payload.code}`} · secuencia {play.seq}
                 </p>
@@ -184,7 +219,11 @@ export function PortalFeaturedGame({ entry }: { entry: PortalGame | null }) {
                 </a>
               </div>
               <span className="font-label-caps text-label-caps uppercase text-ink-muted">
-                {event ? `${eventTitle(event)} · ${entry.events.length} eventos` : "Sin eventos"}
+                {summary
+                  ? `${coverageLabel(entry)} · sin play-by-play`
+                  : event
+                    ? `${eventTitle(event)} · ${entry.events.length} eventos`
+                    : "Sin eventos"}
               </span>
             </div>
           </div>

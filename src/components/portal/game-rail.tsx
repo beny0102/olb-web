@@ -9,11 +9,15 @@ import {
   sourceLabel,
 } from "@/lib/format";
 import {
+  coverageLabel,
   formatTime,
   gameStatus,
+  isSummaryGame,
   lastClosedInning,
   lastEvent,
   lastPitch,
+  scoreOf,
+  SUMMARY_NOTE,
   teamAbbr,
   type PortalGame,
 } from "@/lib/league";
@@ -31,6 +35,7 @@ function baseLabel(entry: PortalGame): string {
 }
 
 function railSuffix(status: GameStatus, entry: PortalGame): string {
+  if (isSummaryGame(entry)) return `Final · ${coverageLabel(entry)}`;
   const state = entry.state;
   switch (status) {
     case "live":
@@ -96,6 +101,8 @@ function StrikeZone({ pitchNo, label }: { pitchNo: number | null; label: string 
 export function PortalGameRail({ entry }: { entry: PortalGame }) {
   const status = gameStatus(entry);
   const state = entry.state;
+  const summary = isSummaryGame(entry);
+  const score = scoreOf(entry);
   const pitch = lastPitch(entry);
   const event = lastEvent(entry);
   const pitchLabel =
@@ -128,14 +135,14 @@ export function PortalGameRail({ entry }: { entry: PortalGame }) {
               {teamAbbr(entry.game.awayTeam)}
             </span>
             <span className="mt-1 block font-display text-headline-md text-ink">
-              {state && state.status !== "scheduled" ? state.score.away : "—"}
+              {score ? score.away : "—"}
             </span>
           </div>
           <div className="flex flex-col items-center gap-1 px-2">
             <StatusBadge
               status={status}
               suffix={
-                state && state.status !== "scheduled"
+                !summary && state && state.status !== "scheduled"
                   ? String(
                       state.status === "final"
                         ? (lastClosedInning(entry.events) ?? state.inning)
@@ -153,14 +160,34 @@ export function PortalGameRail({ entry }: { entry: PortalGame }) {
               {teamAbbr(entry.game.homeTeam)}
             </span>
             <span className="mt-1 block font-display text-headline-md text-accent">
-              {state && state.status !== "scheduled" ? state.score.home : "—"}
+              {score ? score.home : "—"}
             </span>
           </div>
         </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-3">
-        {status === "live" ? (
+        {summary ? (
+          <div className="border-l-4 border-accent bg-surface-low p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-label-caps text-label-caps uppercase text-accent">
+                Resultado final
+              </span>
+              <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+                {coverageLabel(entry)}
+              </span>
+            </div>
+            <p className="mt-1 font-display text-title-lg uppercase text-ink">
+              {teamAbbr(entry.game.awayTeam)} {score ? score.away : "—"}–
+              {score ? score.home : "—"} {teamAbbr(entry.game.homeTeam)}
+            </p>
+            <p className="mt-2 border-t border-line pt-2 font-body text-body-sm text-ink-muted">
+              {SUMMARY_NOTE}
+            </p>
+          </div>
+        ) : null}
+
+        {!summary && status === "live" ? (
           <>
             <div className="flex items-center justify-between gap-2">
               <span className="font-label-caps text-label-caps uppercase text-ink">
@@ -194,14 +221,14 @@ export function PortalGameRail({ entry }: { entry: PortalGame }) {
           </>
         ) : null}
 
-        {status === "final" || status === "forfeit" ? (
+        {!summary && (status === "final" || status === "forfeit") ? (
           <div className="border-l-4 border-band bg-surface-low p-3">
             <span className="block font-label-caps text-label-caps uppercase text-accent">
               Resultado final
             </span>
             <p className="mt-1 font-display text-title-lg uppercase text-ink">
-              {teamAbbr(entry.game.awayTeam)} {state ? state.score.away : "—"}–
-              {state ? state.score.home : "—"} {teamAbbr(entry.game.homeTeam)}
+              {teamAbbr(entry.game.awayTeam)} {score ? score.away : "—"}–
+              {score ? score.home : "—"} {teamAbbr(entry.game.homeTeam)}
             </p>
             <dl className="mt-2 flex items-baseline justify-between gap-2 border-t border-line pt-2">
               <dt className="font-label-caps text-label-caps uppercase text-ink-muted">Entradas</dt>
@@ -212,7 +239,7 @@ export function PortalGameRail({ entry }: { entry: PortalGame }) {
           </div>
         ) : null}
 
-        {status === "scheduled" ? (
+        {!summary && status === "scheduled" ? (
           <dl className="grid gap-2">
             <div className="border-l-2 border-line-strong bg-surface-low p-2">
               <dt className="font-label-caps text-label-caps uppercase text-ink-muted">Inicio</dt>
@@ -233,17 +260,23 @@ export function PortalGameRail({ entry }: { entry: PortalGame }) {
           <span className="font-label-caps text-label-caps uppercase text-ink-muted">
             Último evento
           </span>
-          <p className="mt-0.5 font-display text-title-lg uppercase text-ink">
-            {event ? eventTitle(event) : "Sin eventos registrados"}
-          </p>
-          {event ? (
-            <p className="mt-0.5 font-body text-body-sm text-ink-muted">
-              {eventDetail(event) ?? `Secuencia ${event.seq}`} · {formatTime(event.occurredAt)} · {sourceLabel(event.source)}
-            </p>
-          ) : null}
-          {pitchType ? (
-            <p className="mt-0.5 font-body text-body-sm text-ink-muted">Tipo registrado: {pitchType}</p>
-          ) : null}
+          {summary ? (
+            <p className="mt-0.5 font-body text-body-sm text-ink-muted">{SUMMARY_NOTE}</p>
+          ) : (
+            <>
+              <p className="mt-0.5 font-display text-title-lg uppercase text-ink">
+                {event ? eventTitle(event) : "Sin eventos registrados"}
+              </p>
+              {event ? (
+                <p className="mt-0.5 font-body text-body-sm text-ink-muted">
+                  {eventDetail(event) ?? `Secuencia ${event.seq}`} · {formatTime(event.occurredAt)} · {sourceLabel(event.source)}
+                </p>
+              ) : null}
+              {pitchType ? (
+                <p className="mt-0.5 font-body text-body-sm text-ink-muted">Tipo registrado: {pitchType}</p>
+              ) : null}
+            </>
+          )}
         </div>
 
         <Link

@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { eventDetail, eventTitle, formatScheduledStart, suspendedTitle } from "@/lib/format";
 import {
+  coverageLabel,
   gameStatus,
+  isSummaryGame,
   lastClosedInning,
   lastEvent,
   orderSlate,
   scoreLabel,
+  scoreOf,
   shortGameId,
+  SUMMARY_NOTE,
   teamAbbr,
   type PortalGame,
 } from "@/lib/league";
@@ -22,6 +26,8 @@ function SlateCard({ entry }: { entry: PortalGame }) {
   const state = entry.state;
   const event = lastEvent(entry);
   const scheduled = gameStatus(entry) === "scheduled";
+  const summary = isSummaryGame(entry);
+  const score = scoreOf(entry);
   const start = formatScheduledStart(entry.game.scheduledStart);
   const venue = entry.game.venue?.trim() || null;
   const suspended = state?.status === "suspended" ? (suspendedTitle(event) ?? "Suspendido") : null;
@@ -53,7 +59,7 @@ function SlateCard({ entry }: { entry: PortalGame }) {
           </span>
         ) : (
           <span className="shrink-0 font-display text-tabular-stats text-ink-muted">
-            {state ? `${state.score.away}–${state.score.home}` : "—"}
+            {score ? `${score.away}–${score.home}` : "—"}
           </span>
         )}
       </div>
@@ -62,10 +68,18 @@ function SlateCard({ entry }: { entry: PortalGame }) {
         <div className="flex items-center justify-between gap-2 font-label-caps text-label-caps uppercase">
           <span className="text-ink-muted">Estado</span>
           <span className="text-ink">
-            <InningMark state={state} closedInning={lastClosedInning(entry.events)} />
-            {state && state.status !== "scheduled" && state.status !== "final"
-              ? ` · ${state.outs === 1 ? "1 out" : `${state.outs} outs`}`
-              : ""}
+            {summary ? (
+              <span>
+                Final · {coverageLabel(entry)}
+              </span>
+            ) : (
+              <>
+                <InningMark state={state} closedInning={lastClosedInning(entry.events)} />
+                {state && state.status !== "scheduled" && state.status !== "final"
+                  ? ` · ${state.outs === 1 ? "1 out" : `${state.outs} outs`}`
+                  : ""}
+              </>
+            )}
           </span>
         </div>
         {scheduled ? (
@@ -77,8 +91,10 @@ function SlateCard({ entry }: { entry: PortalGame }) {
         <div className="flex items-start justify-between gap-2 font-label-caps text-label-caps uppercase">
           <span className="shrink-0 text-ink-muted">Último evento</span>
           <span className="text-right text-ink">
-            {suspended ?? (event ? eventTitle(event) : "Sin eventos")}
-            {suspended ? "" : event ? ` · ${eventDetail(event) ?? `seq ${event.seq}`}` : ""}
+            {summary
+              ? SUMMARY_NOTE
+              : suspended ?? (event ? eventTitle(event) : "Sin eventos")}
+            {summary || suspended ? "" : event ? ` · ${eventDetail(event) ?? `seq ${event.seq}`}` : ""}
           </span>
         </div>
       </div>

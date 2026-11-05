@@ -1,17 +1,61 @@
-import { deriveLinescore, teamAbbr, type PortalGame } from "@/lib/league";
+import {
+  deriveLinescore,
+  isSummaryGame,
+  scoreOf,
+  teamAbbr,
+  type PortalGame,
+} from "@/lib/league";
 
 function runs(value: number | null): string {
   return value === null ? "–" : String(value);
 }
 
+function SummaryLinescore({ entry }: { entry: PortalGame }) {
+  const score = scoreOf(entry);
+  const away = teamAbbr(entry.game.awayTeam);
+  const home = teamAbbr(entry.game.homeTeam);
+
+  return (
+    <div className="border-l-2 border-band bg-surface-low p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-label-caps text-label-caps uppercase text-ink-muted">
+          Línea de entradas
+        </p>
+        <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+          Solo resultado
+        </span>
+      </div>
+      {score ? (
+        <dl className="mt-2 grid grid-cols-2 gap-2 font-display text-tabular-stats text-ink">
+          <div>
+            <dt className="font-label-caps text-label-caps uppercase text-ink-muted">{away}</dt>
+            <dd>{score.away}</dd>
+          </div>
+          <div>
+            <dt className="font-label-caps text-label-caps uppercase text-ink-muted">{home}</dt>
+            <dd className="text-accent">{score.home}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="mt-1 font-body text-body-sm text-ink-muted">Sin marcador registrado.</p>
+      )}
+      <p className="mt-2 border-t border-line pt-2 font-body text-body-sm text-ink-muted">
+        La cobertura resumen no incluye anotación por entrada.
+      </p>
+    </div>
+  );
+}
+
 export function PortalLinescore({ entry }: { entry: PortalGame }) {
+  if (isSummaryGame(entry)) return <SummaryLinescore entry={entry} />;
+
   const line = deriveLinescore(entry.events);
-  const state = entry.state;
+  const score = scoreOf(entry);
   const away = teamAbbr(entry.game.awayTeam);
   const home = teamAbbr(entry.game.homeTeam);
   const total = (side: "away" | "home"): string => {
-    if (!state || state.status === "scheduled") return "–";
-    return String(state.score[side]);
+    if (!score) return "–";
+    return String(score[side]);
   };
 
   if (!line.hasData) {

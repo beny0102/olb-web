@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { eventTitle, suspendedTitle } from "@/lib/format";
 import {
+  coverageLabel,
   gameStatus,
+  isSummaryGame,
   lastClosedInning,
   lastEvent,
+  scoreOf,
   shortGameId,
   teamAbbr,
   topGames,
@@ -16,15 +19,19 @@ function accentFor(entry: PortalGame): string {
 }
 
 function winnerTone(entry: PortalGame, side: "away" | "home"): string {
-  const state = entry.state;
-  if (!state || state.status === "scheduled") return "text-ink";
-  const { away, home } = state.score;
+  const score = scoreOf(entry);
+  if (!score) return "text-ink";
+  const { away, home } = score;
   if (away === home) return "text-ink";
   const winner = away > home ? "away" : "home";
   return winner === side ? "text-accent font-extrabold" : "text-ink";
 }
 
 function footerLine(entry: PortalGame): string {
+  if (isSummaryGame(entry)) {
+    const status = gameStatus(entry) === "final" ? "Final" : "Resumen";
+    return `${status} · ${coverageLabel(entry)}`;
+  }
   const state = entry.state;
   if (!state) return "Sin estado disponible";
   if (state.status === "scheduled") return "Programado";
@@ -42,9 +49,7 @@ function TeamRow({
   side: "away" | "home";
 }) {
   const name = side === "away" ? entry.game.awayTeam : entry.game.homeTeam;
-  const state = entry.state;
-  const score =
-    state && state.status !== "scheduled" ? state.score[side] : null;
+  const score = scoreOf(entry);
 
   return (
     <div className="flex items-center justify-between gap-2">
@@ -56,7 +61,7 @@ function TeamRow({
         <span className="truncate">{teamAbbr(name)}</span>
       </span>
       <span className={`font-display text-tabular-stats ${winnerTone(entry, side)}`}>
-        {score ?? "—"}
+        {score ? score[side] : "—"}
       </span>
     </div>
   );
@@ -115,7 +120,9 @@ export function PortalScoreCards({ games }: { games: readonly PortalGame[] }) {
                         ? (suspendedTitle(event) ?? "Suspendido")
                         : event
                           ? eventTitle(event)
-                          : "Sin eventos"}
+                          : isSummaryGame(entry)
+                            ? "Sin play-by-play"
+                            : "Sin eventos"}
                     </span>
                   </div>
                 </Link>

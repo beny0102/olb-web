@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { eventDetail, eventTitle, suspendedTitle } from "@/lib/format";
 import type { PortalGame } from "@/lib/league";
-import { gameStatus, lastClosedInning, lastEvent, orderGames, scoreLabel } from "@/lib/league";
+import {
+  gameStatus,
+  isSummaryGame,
+  lastClosedInning,
+  lastEvent,
+  orderGames,
+  scoreLabel,
+  SUMMARY_NOTE,
+} from "@/lib/league";
 import { StatusBadge } from "./primitives";
 
 function detail(entry: PortalGame): string {
   const event = lastEvent(entry);
-  if (!event) return "Sin eventos registrados";
+  if (!event) return isSummaryGame(entry) ? SUMMARY_NOTE : "Sin eventos registrados";
   if (gameStatus(entry) === "suspended") return suspendedTitle(event) ?? "Suspendido";
   const extra = eventDetail(event);
   return extra ? `${eventTitle(event)} · ${extra}` : eventTitle(event);

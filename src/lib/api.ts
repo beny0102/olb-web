@@ -2,6 +2,8 @@ import type { BoxScore, Event, GameRecord, GameState, Standings } from "./types"
 
 const SERVER_API_URL = (process.env.API_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
+export { SERVER_API_URL };
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -12,7 +14,7 @@ export class ApiError extends Error {
   }
 }
 
-async function get<T>(base: string, path: string): Promise<T> {
+export async function get<T>(base: string, path: string): Promise<T> {
   const response = await fetch(`${base}${path}`, { cache: "no-store" });
   if (!response.ok) throw new ApiError(response.status, path);
   return (await response.json()) as T;
