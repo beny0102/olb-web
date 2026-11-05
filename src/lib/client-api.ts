@@ -1,6 +1,7 @@
 import type { BoxScore, Event, GameState } from "./types";
 
-const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
+// Production builds must set NEXT_PUBLIC_API_URL to the API origin.
+const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 async function get<T>(path: string): Promise<T> {
   const response = await fetch(`${BASE}${path}`, { cache: "no-store" });
