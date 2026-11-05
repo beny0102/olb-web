@@ -1,6 +1,6 @@
 import type { BoxScore, Event, GameRecord, GameState, Standings } from "./types";
 
-const SERVER_API_URL = (process.env.API_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const SERVER_API_URL = (process.env.API_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(
