@@ -290,7 +290,7 @@ export function SummaryGame({
 
       <div className="flex flex-col gap-3 border-t border-line bg-surface-low px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
         <p className="font-body text-body-sm text-ink-muted">
-          {SUMMARY_NOTE}. Este juego no tiene registro de jugadas en el sistema.
+          Este juego no tiene registro de jugadas en el sistema.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {game.seasonId ? (

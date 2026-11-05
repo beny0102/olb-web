@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Club",
   description:
-    "Acta del club en la Liga Metropolitana de Open League Baseball: récord, roster, próximos juegos y resultados.",
+    "Acta del club en la Liga Metropolitana de Open League Baseball: récord, plantilla, próximos juegos y resultados.",
 };
 
 function clubGames(games: readonly PortalGame[], team: string): PortalGame[] {
@@ -90,7 +90,7 @@ function Roster({
       <SectionHeader
         id="club-roster-title"
         kicker="Plantilla registrada"
-        title="Roster"
+        title="Plantilla"
         action={
           <span className="font-label-caps text-label-caps uppercase text-ink-muted">
             {roster.length} {roster.length === 1 ? "jugador" : "jugadores"}
@@ -100,12 +100,12 @@ function Roster({
 
       {roster.length === 0 ? (
         <p className="border border-line-strong bg-raised p-6 font-body text-body-md text-ink-muted">
-          Sin roster registrado para este club.
+          Sin plantilla registrada para este club.
         </p>
       ) : (
         <div className="overflow-x-auto border border-line-strong bg-raised">
           <table className="w-full min-w-[30rem] border-collapse text-left">
-            <caption className="sr-only">Roster registrado de {team}</caption>
+            <caption className="sr-only">Plantilla registrada de {team}</caption>
             <thead>
               <tr className="border-b-2 border-band bg-table-head font-label-caps text-label-caps uppercase text-ink-muted">
                 <th scope="col" className="px-3 py-2">
