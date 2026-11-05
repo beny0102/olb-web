@@ -56,7 +56,7 @@ Add one block to `src/theme/teams.css`:
 }
 ```
 
-The team route (`/equipos/<slug>`) resolves the slug from standings and game
+The team route (`/teams/<slug>`) resolves the slug from standings and game
 records, wraps the page in `<div data-team={slug}>` and nothing else changes.
 Clubs without a block use the league palette.
 

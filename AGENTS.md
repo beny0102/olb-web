@@ -25,3 +25,11 @@ Governance**). Read it before any UI change, together with the approved referenc
 - Theme layers are base → league → team (user reserved); rebrand a club in one
   block of `src/theme/teams.css`, never in components. See `THEMING.md`.
 - Verify computed styles and screenshots at 1280 and 390 before committing.
+
+## Language
+
+Code, identifiers, file and directory names, route segments, API paths, schema fields and
+commit messages are English. Product/UI copy and user-facing documentation are Spanish.
+Routes are English, kebab-case nouns: `/games/[id]/score`, `/teams/[slug]`,
+`/games/[id]/verify`, `/new`. Never `/juego/[id]/anotar`, `/equipos/[slug]` or `/nuevo`.
+Do not add Spanish redirects for old routes; update the links.

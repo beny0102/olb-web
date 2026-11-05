@@ -67,7 +67,7 @@ export function PortalStandings({ standings }: { standings: Standings | null }) 
                     className="px-3 py-3 font-display text-title-lg uppercase text-ink"
                   >
                     <Link
-                      href={`/equipos/${teamSlug(row.team)}`}
+                      href={`/teams/${teamSlug(row.team)}`}
                       className="transition-colors hover:text-accent hover:underline"
                     >
                       {row.team}
