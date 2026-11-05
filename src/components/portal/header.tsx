@@ -3,6 +3,7 @@ import Link from "next/link";
 const NAV = [
   { href: "/", label: "Portada", match: "/" },
   { href: "#jornada", label: "Juegos", match: "#jornada" },
+  { href: "/stats", label: "Estadísticas", match: "/stats" },
   { href: "/demo", label: "Demo", match: "/demo" },
 ] as const;
 
@@ -14,11 +15,19 @@ function Shield() {
   );
 }
 
-function NavLinks({ active, className }: { active: "portada" | null; className: string }) {
+function NavLinks({
+  active,
+  className,
+}: {
+  active: "portada" | "stats" | null;
+  className: string;
+}) {
   return (
     <nav aria-label="Principal" data-portal-nav className={className}>
       {NAV.map((item) => {
-        const isActive = item.match === "/" && active === "portada";
+        const isActive =
+          (item.match === "/" && active === "portada") ||
+          (item.match === "/stats" && active === "stats");
         return (
           <Link
             key={item.label}
@@ -46,7 +55,11 @@ function NavLinks({ active, className }: { active: "portada" | null; className: 
   );
 }
 
-export function PortalHeader({ active = "portada" }: { active?: "portada" | null }) {
+export function PortalHeader({
+  active = "portada",
+}: {
+  active?: "portada" | "stats" | null;
+}) {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface">
       <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8">

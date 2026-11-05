@@ -5,15 +5,22 @@ import { BoxScorePanel } from "@/components/box-score";
 import { EventFeed } from "@/components/event-feed";
 import { PitchViewer } from "@/components/pitch-viewer";
 import { Scoreboard } from "@/components/scoreboard";
-import { clientBoxScore, clientEvents, clientState } from "@/lib/client-api";
+import {
+  clientBoxScore,
+  clientEvents,
+  clientState,
+  gameStreamUrl,
+} from "@/lib/client-api";
 import { formatScheduledStart } from "@/lib/format";
+import { mergeEvents, parseStreamMessage } from "@/lib/live-stream";
 import type { BoxScore, Event, GameRecord, GameState } from "@/lib/types";
 
-type Connection = "live" | "offline" | "demo";
+type Connection = "stream" | "polling" | "offline" | "demo";
 type ViewerPhase = Connection | "final" | "scheduled";
 
 const VIEWER_LABEL: Record<ViewerPhase, string> = {
-  live: "Actualizando cada 3 s",
+  stream: "Actualizando en vivo",
+  polling: "Actualizando cada 3 s",
   offline: "API sin respuesta, reintentando",
   demo: "Reproducción estática",
   final: "Acta cerrada",
@@ -21,7 +28,8 @@ const VIEWER_LABEL: Record<ViewerPhase, string> = {
 };
 
 const VIEWER_MARK: Record<ViewerPhase, string> = {
-  live: "bg-accent",
+  stream: "bg-accent",
+  polling: "bg-accent",
   offline: "bg-accent",
   demo: "bg-ink-muted",
   final: "bg-ink-muted",
@@ -82,43 +90,122 @@ export function LiveGame({
   const [state, setState] = useState<GameState>(initialState);
   const [events, setEvents] = useState<Event[]>(initialEvents);
   const [boxScore, setBoxScore] = useState<BoxScore | null>(initialBoxScore);
-  const [connection, setConnection] = useState<Connection>(demo ? "demo" : "live");
+  const [connection, setConnection] = useState<Connection>(demo ? "demo" : "stream");
   const lastSeq = useRef(initialState.lastSeq);
+  const eventsSeq = useRef(
+    initialEvents.reduce((highest, event) => Math.max(highest, event.seq), -1),
+  );
+  const status = useRef(initialState.status);
 
   useEffect(() => {
     if (demo) return;
-    let cancelled = false;
 
-    const tick = async () => {
+    let cancelled = false;
+    let source: EventSource | null = null;
+    let timer: number | null = null;
+    let retryTimer: number | null = null;
+    let polling = false;
+    let eventsLoading = false;
+
+    const loadBoxScore = async () => {
+      try {
+        const box = await clientBoxScore(game.id);
+        if (!cancelled) setBoxScore(box);
+      } catch {
+        // The state read was good; keep the last box score rather than blanking it.
+      }
+    };
+
+    const syncEvents = async () => {
+      if (cancelled || eventsLoading) return;
+      const target = lastSeq.current;
+      if (target <= eventsSeq.current) return;
+
+      eventsLoading = true;
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+
+      try {
+        const fresh = await clientEvents(game.id, eventsSeq.current + 1);
+        if (cancelled) return;
+        if (fresh.length > 0) setEvents((previous) => mergeEvents(previous, fresh));
+        eventsSeq.current = Math.max(eventsSeq.current, target);
+      } catch {
+        // Keep the cursor behind so the retry re-reads the missed range.
+        if (!cancelled) {
+          retryTimer = window.setTimeout(() => {
+            retryTimer = null;
+            void syncEvents();
+          }, 3000);
+        }
+      } finally {
+        eventsLoading = false;
+        if (!cancelled && retryTimer === null && lastSeq.current > eventsSeq.current) {
+          void syncEvents();
+        }
+      }
+    };
+
+    const applyState = (next: GameState, channel: "stream" | "polling") => {
+      const previousSeq = lastSeq.current;
+      const previousStatus = status.current;
+      const advanced = next.lastSeq > previousSeq;
+
+      lastSeq.current = Math.max(previousSeq, next.lastSeq);
+      status.current = next.status;
+      setState(next);
+      setConnection(channel);
+
+      void syncEvents();
+      if (advanced || next.status !== previousStatus) void loadBoxScore();
+    };
+
+    const poll = async () => {
       if (document.hidden) return;
       try {
-        const [fresh, snapshot, box] = await Promise.all([
-          clientEvents(game.id, lastSeq.current + 1),
-          clientState(game.id),
-          clientBoxScore(game.id),
-        ]);
-        if (cancelled) return;
-
-        if (fresh.length > 0) {
-          setEvents((previous) => {
-            const known = new Set(previous.map((event) => event.id));
-            return [...previous, ...fresh.filter((event) => !known.has(event.id))];
-          });
-          lastSeq.current = fresh[fresh.length - 1]!.seq;
-        }
-
-        setState(snapshot);
-        setBoxScore(box);
-        setConnection("live");
+        const snapshot = await clientState(game.id);
+        if (!cancelled) applyState(snapshot, "polling");
       } catch {
         if (!cancelled) setConnection("offline");
       }
     };
 
-    const timer = window.setInterval(tick, 3000);
+    const startPolling = () => {
+      if (polling || cancelled) return;
+      polling = true;
+      setConnection("polling");
+      void poll();
+      timer = window.setInterval(poll, 3000);
+    };
+
+    const startStream = () => {
+      source = new EventSource(gameStreamUrl(game.id));
+      source.onopen = () => {
+        if (!cancelled) setConnection("stream");
+      };
+      source.onmessage = (message) => {
+        if (cancelled) return;
+        const parsed = parseStreamMessage(message.data);
+        if (parsed) applyState(parsed.state, "stream");
+      };
+      source.onerror = () => {
+        if (cancelled) return;
+        source?.close();
+        source = null;
+        startPolling();
+      };
+    };
+
+    startStream();
+    void syncEvents();
+
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      source?.close();
+      if (timer !== null) window.clearInterval(timer);
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
     };
   }, [game.id, demo]);
 
@@ -135,7 +222,7 @@ export function LiveGame({
       ? connection
       : state.status === "final" || state.status === "scheduled"
         ? state.status
-        : "live";
+        : connection;
 
   return (
     <div className="flex flex-col gap-6">
@@ -146,7 +233,7 @@ export function LiveGame({
           }`}
         >
           <span
-            className={`size-2 ${VIEWER_MARK[phase]} ${phase === "live" ? "animate-pulse" : ""}`}
+            className={`size-2 ${VIEWER_MARK[phase]} ${phase === "stream" ? "animate-pulse" : ""}`}
             aria-hidden="true"
           />
           {VIEWER_LABEL[phase]}

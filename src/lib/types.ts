@@ -131,6 +131,46 @@ export interface LeagueStandingGroup {
   teams: LeagueStandingRow[];
 }
 
+export interface LeagueBattingLeader {
+  playerId: string;
+  player: string;
+  teamSeasonId: string;
+  team: string;
+  jersey: string | null;
+  position: string | null;
+  pa: number;
+  ab: number;
+  h: number;
+  hr: number;
+  rbi: number;
+  r: number;
+  bb: number;
+  so: number;
+  hbp: number;
+  /** Batting average; null when the player has no at-bats. */
+  avg: number | null;
+}
+
+export interface LeaguePitchingLeader {
+  playerId: string;
+  player: string;
+  teamSeasonId: string;
+  team: string;
+  jersey: string | null;
+  position: string | null;
+  pitches: number;
+  so: number;
+  bb: number;
+  appearances: number;
+}
+
+export interface LeagueSeasonStats {
+  seasonId: string;
+  groups: LeagueStandingGroup[];
+  batting: LeagueBattingLeader[];
+  pitching: LeaguePitchingLeader[];
+}
+
 export interface GameSummary {
   gameId: string;
   homeScore: number | null;

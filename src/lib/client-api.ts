@@ -3,6 +3,14 @@ import type { BoxScore, Event, GameState } from "./types";
 // Production builds must set NEXT_PUBLIC_API_URL to the API origin.
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
+export function apiBase(): string {
+  return BASE;
+}
+
+export function gameStreamUrl(id: string): string {
+  return `${apiBase()}/games/${encodeURIComponent(id)}/stream`;
+}
+
 async function get<T>(path: string): Promise<T> {
   const response = await fetch(`${BASE}${path}`, { cache: "no-store" });
   if (!response.ok) throw new Error(`olb-api ${response.status} on ${path}`);

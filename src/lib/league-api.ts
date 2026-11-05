@@ -5,6 +5,7 @@ import type {
   LeagueGameDetail,
   LeagueSeason,
   LeagueSeasonOverview,
+  LeagueSeasonStats,
   LeagueStandingGroup,
   LeagueTeamSeason,
   LeagueTeamSeasonView,
@@ -51,6 +52,17 @@ export function fetchLeagueStandings(seasonId: string): Promise<LeagueStandingGr
   return get<LeagueStandingGroup[]>(
     SERVER_API_URL,
     path(`/seasons/${encodeURIComponent(seasonId)}/standings`),
+  );
+}
+
+export function fetchSeasonStats(
+  seasonId: string,
+  competitionId?: string,
+): Promise<LeagueSeasonStats> {
+  const query = competitionId ? `?competitionId=${encodeURIComponent(competitionId)}` : "";
+  return get<LeagueSeasonStats>(
+    SERVER_API_URL,
+    path(`/seasons/${encodeURIComponent(seasonId)}/stats${query}`),
   );
 }
 

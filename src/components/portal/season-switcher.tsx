@@ -4,11 +4,15 @@ import type { LeagueSeason } from "@/lib/types";
 export function SeasonSwitcher({
   seasons,
   activeId,
+  basePath = "/",
 }: {
   seasons: readonly LeagueSeason[];
   activeId: string | null;
+  /** Page that owns the season query, e.g. `/stats`. */
+  basePath?: string;
 }) {
   if (seasons.length === 0) return null;
+  const target = basePath === "/" ? "/" : basePath.replace(/\/$/, "");
 
   return (
     <section aria-label="Temporadas" className="border-b border-line bg-surface-low">
@@ -23,7 +27,7 @@ export function SeasonSwitcher({
             return (
               <Link
                 key={season.id}
-                href={`/?season=${encodeURIComponent(season.id)}`}
+                href={`${target}?season=${encodeURIComponent(season.id)}`}
                 role="listitem"
                 aria-current={active ? "page" : undefined}
                 className={

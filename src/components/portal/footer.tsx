@@ -37,6 +37,11 @@ export function PortalFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/stats" className={LINK_CLASS}>
+                  Estadísticas
+                </Link>
+              </li>
+              <li>
                 <Link href="/demo" className={LINK_CLASS}>
                   Demostración estática
                 </Link>
@@ -97,7 +102,8 @@ export function PortalFooter() {
               Registro
             </div>
             <p className="font-body text-body-sm text-ink-muted">
-              Plantillas disponibles; estadísticas de jugadores, pendientes en la API.
+              Plantillas y estadísticas de temporada desde actas completas; los resúmenes no
+              cuentan para líderes de jugadores.
             </p>
             <div className="mt-3 font-label-caps text-label-caps uppercase text-accent">
               Apache-2.0 · sin afiliación con MLB
