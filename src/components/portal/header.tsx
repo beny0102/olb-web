@@ -5,6 +5,7 @@ const NAV = [
   { href: "#jornada", label: "Juegos", match: "#jornada" },
   { href: "/stats", label: "Estadísticas", match: "/stats" },
   { href: "/demo", label: "Demo", match: "/demo" },
+  { href: "/admin", label: "Admin", match: "/admin" },
 ] as const;
 
 function Shield() {
@@ -19,7 +20,7 @@ function NavLinks({
   active,
   className,
 }: {
-  active: "portada" | "stats" | null;
+  active: "portada" | "stats" | "admin" | null;
   className: string;
 }) {
   return (
@@ -27,7 +28,8 @@ function NavLinks({
       {NAV.map((item) => {
         const isActive =
           (item.match === "/" && active === "portada") ||
-          (item.match === "/stats" && active === "stats");
+          (item.match === "/stats" && active === "stats") ||
+          (item.match === "/admin" && active === "admin");
         return (
           <Link
             key={item.label}
@@ -58,7 +60,7 @@ function NavLinks({
 export function PortalHeader({
   active = "portada",
 }: {
-  active?: "portada" | "stats" | null;
+  active?: "portada" | "stats" | "admin" | null;
 }) {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface">
