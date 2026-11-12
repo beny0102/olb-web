@@ -1,5 +1,6 @@
 import {
   adminErrorMessage,
+  catalogDeleteErrorMessage,
   gameDeleteErrorMessage,
   loginErrorMessage,
   type AdminIdentity,
@@ -8,13 +9,19 @@ import {
   type AdminSession,
   type AdminTeam,
   type CompetitionPayload,
+  type CompetitionUpdatePayload,
   type GamePayload,
   type GameReschedulePayload,
   type PlayerPayload,
+  type PlayerUpdatePayload,
   type RosterPayload,
+  type RosterUpdatePayload,
   type SeasonPayload,
+  type SeasonUpdatePayload,
   type TeamPayload,
   type TeamSeasonPayload,
+  type TeamSeasonUpdatePayload,
+  type TeamUpdatePayload,
 } from "./admin";
 import type {
   LeagueCompetition,
@@ -22,6 +29,7 @@ import type {
   LeagueRosterEntry,
   LeagueSeason,
   LeagueTeamSeason,
+  LeagueTeamSeasonView,
 } from "./types";
 
 /**
@@ -223,6 +231,161 @@ export async function deleteGame(token: string, id: string): Promise<{ deleted: 
   } catch (error) {
     if (error instanceof AdminApiError && error.status === 409) {
       throw new AdminApiError(409, gameDeleteErrorMessage(error.detail), error.detail);
+    }
+    throw error;
+  }
+}
+
+/** Organization-wide catalog reads, used by the edit/delete lists. */
+export function listOrganizationTeams(
+  token: string,
+  organizationId: string,
+): Promise<AdminTeam[]> {
+  return request<AdminTeam[]>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/teams`,
+    { token },
+  );
+}
+
+export function listOrganizationPlayers(
+  token: string,
+  organizationId: string,
+): Promise<AdminPlayer[]> {
+  return request<AdminPlayer[]>(
+    `/admin/organizations/${encodeURIComponent(organizationId)}/players`,
+    { token },
+  );
+}
+
+/** Public read with the team season and its current roster. */
+export function getTeamSeason(id: string): Promise<LeagueTeamSeasonView> {
+  return request<LeagueTeamSeasonView>(`/team-seasons/${encodeURIComponent(id)}`);
+}
+
+export function updateSeason(
+  token: string,
+  id: string,
+  payload: SeasonUpdatePayload,
+): Promise<LeagueSeason> {
+  return request<LeagueSeason>(`/admin/seasons/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteSeason(token: string, id: string): Promise<{ deleted: true }> {
+  return deleteCatalogRow<{ deleted: true }>(`/admin/seasons/${encodeURIComponent(id)}`, token);
+}
+
+export function updateCompetition(
+  token: string,
+  id: string,
+  payload: CompetitionUpdatePayload,
+): Promise<LeagueCompetition> {
+  return request<LeagueCompetition>(`/admin/competitions/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteCompetition(
+  token: string,
+  id: string,
+): Promise<{ deleted: true }> {
+  return deleteCatalogRow<{ deleted: true }>(`/admin/competitions/${encodeURIComponent(id)}`, token);
+}
+
+export function updateTeam(
+  token: string,
+  id: string,
+  payload: TeamUpdatePayload,
+): Promise<AdminTeam> {
+  return request<AdminTeam>(`/admin/teams/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteTeam(token: string, id: string): Promise<{ deleted: true }> {
+  return deleteCatalogRow<{ deleted: true }>(`/admin/teams/${encodeURIComponent(id)}`, token);
+}
+
+export function updateTeamSeason(
+  token: string,
+  id: string,
+  payload: TeamSeasonUpdatePayload,
+): Promise<LeagueTeamSeason> {
+  return request<LeagueTeamSeason>(`/admin/team-seasons/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteTeamSeason(
+  token: string,
+  id: string,
+): Promise<{ deleted: true }> {
+  return deleteCatalogRow<{ deleted: true }>(`/admin/team-seasons/${encodeURIComponent(id)}`, token);
+}
+
+export function updatePlayer(
+  token: string,
+  id: string,
+  payload: PlayerUpdatePayload,
+): Promise<AdminPlayer> {
+  return request<AdminPlayer>(`/admin/players/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export interface DeletePlayerResponse {
+  deleted: true;
+  rosterEntriesDeleted: number;
+}
+
+export async function deletePlayer(
+  token: string,
+  id: string,
+  force = false,
+): Promise<DeletePlayerResponse> {
+  const query = force ? "?force=true" : "";
+  return deleteCatalogRow<DeletePlayerResponse>(`/admin/players/${encodeURIComponent(id)}${query}`, token);
+}
+
+export function updateRosterEntry(
+  token: string,
+  id: string,
+  payload: RosterUpdatePayload,
+): Promise<LeagueRosterEntry> {
+  return request<LeagueRosterEntry>(`/admin/roster-entries/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteRosterEntry(
+  token: string,
+  id: string,
+): Promise<{ deleted: true }> {
+  return deleteCatalogRow<{ deleted: true }>(`/admin/roster-entries/${encodeURIComponent(id)}`, token);
+}
+
+async function deleteCatalogRow<T>(
+  path: string,
+  token: string,
+): Promise<T> {
+  try {
+    return await request<T>(path, { method: "DELETE", token });
+  } catch (error) {
+    if (error instanceof AdminApiError && error.status === 409) {
+      throw new AdminApiError(409, catalogDeleteErrorMessage(error.detail), error.detail);
     }
     throw error;
   }

@@ -179,6 +179,86 @@ export interface GameReschedulePayload {
   venue: string | null;
 }
 
+export interface SeasonUpdateValues {
+  name: string;
+  year: string;
+  status: "active" | "archived";
+  startsOn: string;
+  endsOn: string;
+}
+
+export interface SeasonUpdatePayload {
+  name: string;
+  year: number;
+  status: "active" | "archived";
+  startsOn: string | null;
+  endsOn: string | null;
+}
+
+export interface CompetitionUpdateValues {
+  name: string;
+  kind: "league" | "division";
+  parentId: string;
+  sortOrder: string;
+}
+
+export interface CompetitionUpdatePayload {
+  name: string;
+  kind: "league" | "division";
+  parentId: string | null;
+  sortOrder: number;
+}
+
+export interface TeamUpdateValues {
+  name: string;
+  slug: string;
+  abbreviation: string;
+}
+
+export interface TeamUpdatePayload {
+  name: string;
+  slug: string;
+  abbreviation: string | null;
+}
+
+export interface TeamSeasonUpdateValues {
+  name: string;
+  abbreviation: string;
+  competitionId: string;
+}
+
+export interface TeamSeasonUpdatePayload {
+  name: string;
+  abbreviation: string | null;
+  competitionId: string | null;
+}
+
+export interface PlayerUpdateValues {
+  firstName: string;
+  lastName: string;
+}
+
+export interface PlayerUpdatePayload {
+  firstName: string;
+  lastName: string;
+}
+
+export interface RosterUpdateValues {
+  jersey: string;
+  primaryPosition: string;
+  eligibilityStart: string;
+  eligibilityEnd: string;
+  status: "active" | "inactive";
+}
+
+export interface RosterUpdatePayload {
+  jersey: string | null;
+  primaryPosition: string | null;
+  eligibilityStart: string | null;
+  eligibilityEnd: string | null;
+  status: "active" | "inactive";
+}
+
 function optional(value: string): string | null {
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
@@ -264,6 +344,75 @@ export function gameReschedulePayload(values: GameRescheduleValues): GameResched
   };
 }
 
+/** API date (`YYYY-MM-DD`) from a date input or an ISO timestamp. */
+export function toIsoDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const datePart = /^(\d{4}-\d{2}-\d{2})(?:[T\s].*)?$/.exec(trimmed);
+  if (datePart) {
+    const date = new Date(`${datePart[1]}T00:00:00Z`);
+    return Number.isNaN(date.getTime()) ? null : datePart[1]!;
+  }
+  const date = new Date(trimmed);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+}
+
+export function seasonUpdatePayload(values: SeasonUpdateValues): SeasonUpdatePayload {
+  return {
+    name: values.name.trim(),
+    year: Number(values.year),
+    status: values.status,
+    startsOn: toIsoDate(values.startsOn),
+    endsOn: toIsoDate(values.endsOn),
+  };
+}
+
+export function competitionUpdatePayload(
+  values: CompetitionUpdateValues,
+): CompetitionUpdatePayload {
+  return {
+    name: values.name.trim(),
+    kind: values.kind,
+    parentId: optional(values.parentId),
+    sortOrder: Number(values.sortOrder),
+  };
+}
+
+export function teamUpdatePayload(values: TeamUpdateValues): TeamUpdatePayload {
+  return {
+    name: values.name.trim(),
+    slug: values.slug.trim(),
+    abbreviation: optional(values.abbreviation),
+  };
+}
+
+export function teamSeasonUpdatePayload(
+  values: TeamSeasonUpdateValues,
+): TeamSeasonUpdatePayload {
+  return {
+    name: values.name.trim(),
+    abbreviation: optional(values.abbreviation),
+    competitionId: optional(values.competitionId),
+  };
+}
+
+export function playerUpdatePayload(values: PlayerUpdateValues): PlayerUpdatePayload {
+  return {
+    firstName: values.firstName.trim(),
+    lastName: values.lastName.trim(),
+  };
+}
+
+export function rosterUpdatePayload(values: RosterUpdateValues): RosterUpdatePayload {
+  return {
+    jersey: optional(values.jersey),
+    primaryPosition: optional(values.primaryPosition),
+    eligibilityStart: toIsoDate(values.eligibilityStart),
+    eligibilityEnd: toIsoDate(values.eligibilityEnd),
+    status: values.status,
+  };
+}
+
 /** `<input type="datetime-local">` value in the operator's local timezone. */
 export function toDateTimeLocalValue(value: string | null): string {
   if (!value) return "";
@@ -284,6 +433,29 @@ export function gameDeleteErrorMessage(detail: string | null): string {
     return "Solo se puede cancelar un juego programado.";
   }
   return "El juego no se puede cancelar porque ya tiene actividad registrada.";
+}
+
+/** Spanish copy for catalog deletes that the API refuses with `409`. */
+export function catalogDeleteErrorMessage(detail: string | null): string {
+  switch (detail) {
+    case "season still has competitions, team seasons or games":
+      return "No se puede borrar: la temporada todavía tiene competencias, inscripciones o juegos.";
+    case "competition still has team seasons or games":
+      return "No se puede borrar: la competencia todavía tiene equipos inscritos o juegos.";
+    case "team still has team seasons":
+      return "No se puede borrar: el equipo todavía está inscrito en una temporada.";
+    case "team season still has games":
+      return "No se puede borrar: la inscripción todavía tiene juegos programados.";
+    case "player still has roster entries; use force=true":
+      return "El jugador todavía tiene entradas de roster.";
+    default:
+      return "No se puede borrar: el registro todavía tiene datos asociados.";
+  }
+}
+
+/** The player delete needs a second confirmation with `force=true`. */
+export function playerDeleteNeedsForce(detail: string | null): boolean {
+  return detail === "player still has roster entries; use force=true";
 }
 
 /**
