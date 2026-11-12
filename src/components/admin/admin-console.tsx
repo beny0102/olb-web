@@ -1,17 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   ADMIN_TOKEN_KEY,
   competitionPayload,
   gamePayload,
+  gameReschedulePayload,
   gameStatusLabel,
   orgAdminMemberships,
   playerPayload,
   rosterEntryPayload,
   seasonPayload,
+  shouldReloadSeason,
   teamPayload,
   teamSeasonPayload,
+  toDateTimeLocalValue,
   type AdminMembership,
   type AdminOrganization,
   type AdminPlayer,
@@ -28,6 +32,7 @@ import {
   createSeason,
   createTeam,
   createTeamSeason,
+  deleteGame,
   listCompetitions,
   listGames,
   listOrganizations,
@@ -36,6 +41,7 @@ import {
   login,
   logout,
   me,
+  updateGame,
 } from "@/lib/admin-api";
 import type {
   LeagueCompetition,
@@ -948,6 +954,193 @@ function GameForm({
   );
 }
 
+const SMALL_BUTTON =
+  "inline-flex min-h-9 items-center justify-center border border-line-strong px-3 font-label-caps text-label-caps uppercase text-ink transition-colors hover:border-band disabled:cursor-not-allowed disabled:opacity-60";
+const SMALL_DANGER =
+  "inline-flex min-h-9 items-center justify-center border border-line-strong px-3 font-label-caps text-label-caps uppercase text-accent transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-60";
+
+function GameRow({
+  token,
+  game,
+  onChanged,
+}: {
+  token: string;
+  game: LeagueGame;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<Message>(null);
+  const [scheduledStart, setScheduledStart] = useState(
+    toDateTimeLocalValue(game.scheduledStart),
+  );
+  const [venue, setVenue] = useState(game.venue ?? "");
+
+  function beginEdit() {
+    setScheduledStart(toDateTimeLocalValue(game.scheduledStart));
+    setVenue(game.venue ?? "");
+    setMessage(null);
+    setConfirming(false);
+    setEditing(true);
+  }
+
+  function beginCancel() {
+    setMessage(null);
+    setEditing(false);
+    setConfirming(true);
+  }
+
+  async function handleReschedule(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setMessage(null);
+    try {
+      await updateGame(
+        token,
+        game.id,
+        gameReschedulePayload({ scheduledStart, venue }),
+      );
+      setEditing(false);
+      setMessage({ kind: "ok", text: "Juego reprogramado." });
+      onChanged();
+    } catch (error) {
+      setMessage({ kind: "error", text: errorText(error) });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleCancel() {
+    setPending(true);
+    setMessage(null);
+    try {
+      await deleteGame(token, game.id);
+      setConfirming(false);
+      onChanged();
+    } catch (error) {
+      setConfirming(false);
+      setMessage({ kind: "error", text: errorText(error) });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const scheduled = game.status === "scheduled";
+
+  return (
+    <li
+      data-testid={`game-row-${game.id}`}
+      className="border-b border-line py-3 last:border-b-0"
+    >
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="font-body text-body-sm text-ink">
+            {game.awayTeam} @ {game.homeTeam}
+          </div>
+          <div className="mt-0.5 font-label-caps text-label-caps uppercase text-ink-muted">
+            {[gameStatusLabel(game.status), formatTimestamp(game.scheduledStart), game.venue]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+          <div className="mt-0.5 truncate font-mono text-[11px] text-ink-muted" title={game.id}>
+            {game.id}
+          </div>
+        </div>
+        {scheduled && !editing && !confirming ? (
+          <div className="flex flex-wrap gap-2 md:shrink-0">
+            <button type="button" className={SMALL_BUTTON} onClick={beginEdit}>
+              Reprogramar
+            </button>
+            <button type="button" className={SMALL_DANGER} onClick={beginCancel}>
+              Cancelar
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {editing ? (
+        <form onSubmit={handleReschedule} className="mt-3 border-t border-line pt-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Nuevo inicio" htmlFor={`game-${game.id}-start`}>
+              <input
+                id={`game-${game.id}-start`}
+                type="datetime-local"
+                step={1}
+                required
+                value={scheduledStart}
+                onChange={(event) => setScheduledStart(event.target.value)}
+                className={INPUT}
+              />
+            </Field>
+            <Field label="Nueva sede" htmlFor={`game-${game.id}-venue`}>
+              <input
+                id={`game-${game.id}-venue`}
+                maxLength={200}
+                value={venue}
+                onChange={(event) => setVenue(event.target.value)}
+                className={INPUT}
+                placeholder="Parque Central"
+              />
+            </Field>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="submit" disabled={pending} className={SMALL_BUTTON}>
+              {pending ? "Guardando…" : "Guardar cambios"}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              className={SMALL_BUTTON}
+              onClick={() => {
+                setEditing(false);
+                setMessage(null);
+              }}
+            >
+              Descartar
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {confirming ? (
+        <div
+          role="alert"
+          className="mt-3 border-l-4 border-accent bg-accent-soft px-3 py-2"
+        >
+          <p className="font-body text-body-sm text-ink">
+            ¿Cancelar este juego? Se elimina del calendario y no se puede deshacer.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              className={SMALL_DANGER}
+              onClick={() => void handleCancel()}
+            >
+              {pending ? "Cancelando…" : "Sí, cancelar juego"}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              className={SMALL_BUTTON}
+              onClick={() => setConfirming(false)}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {message ? (
+        <div className="mt-3">
+          <FormMessage message={message} />
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Console
 
@@ -1141,6 +1334,7 @@ export function AdminConsole() {
   }
 
   function handleSeasonChange(id: string) {
+    if (!shouldReloadSeason(selectedSeasonId, id)) return;
     setSelectedSeasonId(id);
     setSelectedCompetitionId(null);
     setCompetitions([]);
@@ -1273,10 +1467,16 @@ export function AdminConsole() {
                 {teamSeasons.length}
               </div>
             </div>
+            <Link
+              href="/admin/users"
+              className="ml-auto inline-flex min-h-12 items-center border border-band-muted px-4 font-label-caps text-label-caps uppercase text-band-ink transition-colors hover:border-gold"
+            >
+              Usuarios y permisos
+            </Link>
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="ml-auto min-h-12 border border-band-muted px-4 font-label-caps text-label-caps uppercase text-band-ink transition-colors hover:border-gold"
+              className="min-h-12 border border-band-muted px-4 font-label-caps text-label-caps uppercase text-band-ink transition-colors hover:border-gold"
             >
               Cerrar sesión
             </button>
@@ -1466,17 +1666,11 @@ export function AdminConsole() {
               ) : (
                 <ul className="mt-4">
                   {games.map((game) => (
-                    <RecordRow
+                    <GameRow
                       key={game.id}
-                      id={game.id}
-                      name={`${game.awayTeam} @ ${game.homeTeam}`}
-                      meta={[
-                        gameStatusLabel(game.status),
-                        formatTimestamp(game.scheduledStart),
-                        game.venue,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      token={token}
+                      game={game}
+                      onChanged={() => setGamesReload((value) => value + 1)}
                     />
                   ))}
                 </ul>
