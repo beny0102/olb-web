@@ -1,5 +1,6 @@
 import {
   adminErrorMessage,
+  gameDeleteErrorMessage,
   loginErrorMessage,
   type AdminIdentity,
   type AdminOrganization,
@@ -8,6 +9,7 @@ import {
   type AdminTeam,
   type CompetitionPayload,
   type GamePayload,
+  type GameReschedulePayload,
   type PlayerPayload,
   type RosterPayload,
   type SeasonPayload,
@@ -37,6 +39,8 @@ export class AdminApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** Raw `message` from the API error body, when present. */
+    readonly detail: string | null = null,
   ) {
     super(message);
     this.name = "AdminApiError";
@@ -44,7 +48,7 @@ export class AdminApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   token?: string;
   body?: unknown;
   timeoutMs?: number;
@@ -88,9 +92,21 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const payload = readJson(await response.text());
   if (!response.ok) {
-    throw new AdminApiError(response.status, adminErrorMessage(response.status));
+    throw new AdminApiError(
+      response.status,
+      adminErrorMessage(response.status),
+      apiMessage(payload),
+    );
   }
   return payload as T;
+}
+
+function apiMessage(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const message = (payload as { message?: unknown }).message;
+  if (typeof message === "string") return message;
+  if (Array.isArray(message) && typeof message[0] === "string") return message[0];
+  return null;
 }
 
 export function login(email: string, password: string): Promise<AdminSession> {
@@ -184,4 +200,30 @@ export function createRosterEntry(
 
 export function createGame(token: string, payload: GamePayload): Promise<LeagueGame> {
   return request<LeagueGame>("/admin/games", { method: "POST", token, body: payload });
+}
+
+export function updateGame(
+  token: string,
+  id: string,
+  payload: GameReschedulePayload,
+): Promise<LeagueGame> {
+  return request<LeagueGame>(`/admin/games/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteGame(token: string, id: string): Promise<{ deleted: true }> {
+  try {
+    return await request<{ deleted: true }>(`/admin/games/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      token,
+    });
+  } catch (error) {
+    if (error instanceof AdminApiError && error.status === 409) {
+      throw new AdminApiError(409, gameDeleteErrorMessage(error.detail), error.detail);
+    }
+    throw error;
+  }
 }

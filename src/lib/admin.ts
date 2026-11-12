@@ -169,6 +169,16 @@ export interface GamePayload {
   venue: string | null;
 }
 
+export interface GameRescheduleValues {
+  scheduledStart: string;
+  venue: string;
+}
+
+export interface GameReschedulePayload {
+  scheduledStart: string | null;
+  venue: string | null;
+}
+
 function optional(value: string): string | null {
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
@@ -244,6 +254,44 @@ export function gamePayload(values: GameFormValues): GamePayload {
     scheduledStart: toIsoTimestamp(values.scheduledStart),
     venue: optional(values.venue),
   };
+}
+
+/** PATCH body for the reschedule action; only the two mutable display fields. */
+export function gameReschedulePayload(values: GameRescheduleValues): GameReschedulePayload {
+  return {
+    scheduledStart: toIsoTimestamp(values.scheduledStart),
+    venue: optional(values.venue),
+  };
+}
+
+/** `<input type="datetime-local">` value in the operator's local timezone. */
+export function toDateTimeLocalValue(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/** Spanish copy for a cancelled game that the API refuses to delete. */
+export function gameDeleteErrorMessage(detail: string | null): string {
+  if (detail === "game has events and cannot be deleted") {
+    return "El juego ya tiene eventos registrados y no se puede cancelar.";
+  }
+  if (detail === "only a scheduled game can be deleted") {
+    return "Solo se puede cancelar un juego programado.";
+  }
+  return "El juego no se puede cancelar porque ya tiene actividad registrada.";
+}
+
+/**
+ * Re-selecting the season that is already loaded is a no-op; clearing the
+ * dependent lists would unmount the competition, team-season and game forms.
+ */
+export function shouldReloadSeason(currentId: string | null, nextId: string): boolean {
+  return currentId !== nextId;
 }
 
 /** Memberships that grant catalog-wide admin inside one organization. */
