@@ -83,14 +83,6 @@ function Card({ accent, children }: { accent: "gold" | "crimson"; children: Reac
   );
 }
 
-function ApiOrigin() {
-  return (
-    <p className="mt-4 font-body text-body-sm break-all text-ink-muted">
-      API: <span className="font-mono">{adminApiBase()}</span>
-    </p>
-  );
-}
-
 export default function SetupPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
@@ -256,7 +248,6 @@ export default function SetupPage() {
             Esta página deja de aceptar cambios cuando existe la primera cuenta. Si ya está
             configurada, entra directamente en la consola.
           </p>
-          <ApiOrigin />
         </aside>
 
         <div className="order-1 min-w-0 md:order-2">
@@ -412,6 +403,8 @@ export default function SetupPage() {
                   <Field
                     label="Identificador de la liga"
                     htmlFor="setup-org-slug"
+                    hint="Minúsculas, números y guiones; no se puede cambiar después."
+                    hintId="setup-org-slug-hint"
                     error={errors.organizationSlug}
                     errorId="setup-org-slug-error"
                   >
@@ -424,7 +417,9 @@ export default function SetupPage() {
                       required
                       aria-invalid={errors.organizationSlug ? true : undefined}
                       aria-describedby={
-                        errors.organizationSlug ? "setup-org-slug-error" : undefined
+                        errors.organizationSlug
+                          ? "setup-org-slug-hint setup-org-slug-error"
+                          : "setup-org-slug-hint"
                       }
                       value={values.organizationSlug}
                       onChange={(event) => updateSlug(event.target.value)}
