@@ -33,8 +33,11 @@ import {
   createTeam,
   createTeamSeason,
   deleteGame,
+  getTeamSeason,
   listCompetitions,
   listGames,
+  listOrganizationPlayers,
+  listOrganizationTeams,
   listOrganizations,
   listSeasons,
   listTeamSeasons,
@@ -43,6 +46,14 @@ import {
   me,
   updateGame,
 } from "@/lib/admin-api";
+import {
+  CompetitionCatalog,
+  PlayerCatalog,
+  RosterCatalog,
+  SeasonCatalog,
+  TeamCatalog,
+  TeamSeasonCatalog,
+} from "@/components/admin/catalog-lists";
 import type {
   LeagueCompetition,
   LeagueGame,
@@ -148,22 +159,6 @@ function Submit({ pending, children }: { pending: boolean; children: ReactNode }
     <button type="submit" disabled={pending} className={BUTTON}>
       {pending ? "Guardando…" : children}
     </button>
-  );
-}
-
-function RecordRow({ name, meta, id }: { name: string; meta?: string; id: string }) {
-  return (
-    <li className="border-b border-line py-2 last:border-b-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="font-body text-body-sm text-ink">{name}</span>
-        {meta ? (
-          <span className="font-label-caps text-label-caps uppercase text-ink-muted">{meta}</span>
-        ) : null}
-      </div>
-      <div className="mt-0.5 truncate font-mono text-[11px] text-ink-muted" title={id}>
-        {id}
-      </div>
-    </li>
   );
 }
 
@@ -1160,10 +1155,12 @@ export function AdminConsole() {
   const [games, setGames] = useState<LeagueGame[]>([]);
   const [teams, setTeams] = useState<AdminTeam[]>([]);
   const [players, setPlayers] = useState<AdminPlayer[]>([]);
-  const [rosterEntries, setRosterEntries] = useState<LeagueRosterEntry[]>([]);
+  const [rosters, setRosters] = useState<Record<string, LeagueRosterEntry[]>>({});
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
   const [gamesReload, setGamesReload] = useState(0);
+  const [rosterReload, setRosterReload] = useState(0);
+  const [catalogReload, setCatalogReload] = useState(0);
 
   const applyIdentity = useCallback(
     (nextToken: string, nextUser: AdminUser, nextMemberships: AdminMembership[]) => {
@@ -1214,7 +1211,7 @@ export function AdminConsole() {
     let cancelled = false;
     setTeams([]);
     setPlayers([]);
-    setRosterEntries([]);
+    setRosters({});
     setSeasons([]);
     setCompetitions([]);
     setTeamSeasons([]);
@@ -1236,6 +1233,26 @@ export function AdminConsole() {
       cancelled = true;
     };
   }, [token, organizationId]);
+
+  useEffect(() => {
+    if (!token || !organizationId) return;
+    let cancelled = false;
+    Promise.all([
+      listOrganizationTeams(token, organizationId),
+      listOrganizationPlayers(token, organizationId),
+    ])
+      .then(([teamRows, playerRows]) => {
+        if (cancelled) return;
+        setTeams(teamRows);
+        setPlayers(playerRows);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setLoadError(errorText(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, organizationId, catalogReload]);
 
   useEffect(() => {
     if (!token || !selectedSeasonId) {
@@ -1285,6 +1302,29 @@ export function AdminConsole() {
   }, [token, selectedCompetitionId]);
 
   useEffect(() => {
+    if (!token || teamSeasons.length === 0) {
+      setRosters({});
+      return;
+    }
+    let cancelled = false;
+    Promise.all(teamSeasons.map((teamSeason) => getTeamSeason(teamSeason.id)))
+      .then((views) => {
+        if (cancelled) return;
+        const next: Record<string, LeagueRosterEntry[]> = {};
+        for (const view of views) next[view.teamSeason.id] = view.roster;
+        setRosters(next);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setRosters({});
+        setLoadError(errorText(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, teamSeasons, rosterReload]);
+
+  useEffect(() => {
     if (!token || !selectedSeasonId) {
       setGames([]);
       return;
@@ -1326,7 +1366,7 @@ export function AdminConsole() {
     setGames([]);
     setTeams([]);
     setPlayers([]);
-    setRosterEntries([]);
+    setRosters({});
     setSelectedSeasonId(null);
     setSelectedCompetitionId(null);
     setLoadError(null);
@@ -1342,22 +1382,30 @@ export function AdminConsole() {
     setGames([]);
   }
 
-  async function refreshSeasons(preferredId: string) {
+  async function refreshSeasons(preferredId?: string) {
     if (!organizationId) return;
     try {
       const rows = await listSeasons(organizationId);
       setSeasons(rows);
-      setSelectedSeasonId(preferredId);
+      const next =
+        preferredId && rows.some((row) => row.id === preferredId)
+          ? preferredId
+          : (rows.find((row) => row.status === "active")?.id ?? rows[0]?.id ?? null);
+      setSelectedSeasonId(next);
     } catch (error) {
       setLoadError(errorText(error));
     }
   }
 
-  async function refreshCompetitions(seasonId: string, preferredId: string) {
+  async function refreshCompetitions(seasonId: string, preferredId?: string) {
     try {
       const rows = await listCompetitions(seasonId);
       setCompetitions(rows);
-      setSelectedCompetitionId(preferredId);
+      const next =
+        preferredId && rows.some((row) => row.id === preferredId)
+          ? preferredId
+          : (rows[0]?.id ?? null);
+      setSelectedCompetitionId(next);
     } catch (error) {
       setLoadError(errorText(error));
     }
@@ -1366,9 +1414,14 @@ export function AdminConsole() {
   async function refreshTeamSeasons(competitionId: string) {
     try {
       setTeamSeasons(await listTeamSeasons(competitionId));
+      setRosterReload((value) => value + 1);
     } catch (error) {
       setLoadError(errorText(error));
     }
+  }
+
+  async function refreshCatalog(): Promise<void> {
+    setCatalogReload((value) => value + 1);
   }
 
   if (phase === "booting") {
@@ -1493,68 +1546,104 @@ export function AdminConsole() {
 
         {token && organizationId ? (
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-            <SeasonForm
-              token={token}
-              organizationId={organizationId}
-              onCreated={(season) => {
-                setSelectedSeasonId(season.id);
-                void refreshSeasons(season.id);
-              }}
-            />
-            <CompetitionForm
-              token={token}
-              seasons={seasons}
-              selectedSeasonId={selectedSeasonId}
-              onSeasonChange={handleSeasonChange}
-              onCreated={(competition) => {
-                setSelectedCompetitionId(competition.id);
-                void refreshCompetitions(competition.seasonId, competition.id);
-              }}
-            />
-            <TeamForm
-              token={token}
-              organizationId={organizationId}
-              onCreated={(team) => {
-                setTeams((current) => [...current.filter((row) => row.id !== team.id), team]);
-              }}
-            />
-            <TeamSeasonForm
-              token={token}
-              seasons={seasons}
-              competitions={competitions}
-              teamOptions={teamOptions}
-              selectedSeasonId={selectedSeasonId}
-              selectedCompetitionId={selectedCompetitionId}
-              onSeasonChange={handleSeasonChange}
-              onCompetitionChange={setSelectedCompetitionId}
-              onCreated={(teamSeason) => {
-                if (teamSeason.competitionId) {
-                  void refreshTeamSeasons(teamSeason.competitionId);
-                }
-              }}
-            />
-            <PlayerForm
-              token={token}
-              organizationId={organizationId}
-              onCreated={(player) => {
-                setPlayers((current) => [
-                  ...current.filter((row) => row.id !== player.id),
-                  player,
-                ]);
-              }}
-            />
-            <RosterForm
-              token={token}
-              teamSeasons={teamSeasons}
-              players={players}
-              onCreated={(entry) => {
-                setRosterEntries((current) => [
-                  ...current.filter((row) => row.id !== entry.id),
-                  entry,
-                ]);
-              }}
-            />
-            <div className="xl:col-span-2">
+            <div className="space-y-6">
+              <SeasonForm
+                token={token}
+                organizationId={organizationId}
+                onCreated={(season) => {
+                  setSelectedSeasonId(season.id);
+                  void refreshSeasons(season.id);
+                }}
+              />
+              <SeasonCatalog
+                token={token}
+                seasons={seasons}
+                onChanged={() => refreshSeasons(selectedSeasonId ?? undefined)}
+              />
+            </div>
+            <div className="space-y-6">
+              <CompetitionForm
+                token={token}
+                seasons={seasons}
+                selectedSeasonId={selectedSeasonId}
+                onSeasonChange={handleSeasonChange}
+                onCreated={(competition) => {
+                  setSelectedCompetitionId(competition.id);
+                  void refreshCompetitions(competition.seasonId, competition.id);
+                }}
+              />
+              <CompetitionCatalog
+                token={token}
+                competitions={competitions}
+                onChanged={() => {
+                  if (selectedSeasonId) {
+                    void refreshCompetitions(
+                      selectedSeasonId,
+                      selectedCompetitionId ?? undefined,
+                    );
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-6">
+              <TeamForm
+                token={token}
+                organizationId={organizationId}
+                onCreated={(team) => {
+                  setTeams((current) => [...current.filter((row) => row.id !== team.id), team]);
+                }}
+              />
+              <TeamCatalog token={token} teams={teams} onChanged={refreshCatalog} />
+            </div>
+            <div className="space-y-6">
+              <TeamSeasonForm
+                token={token}
+                seasons={seasons}
+                competitions={competitions}
+                teamOptions={teamOptions}
+                selectedSeasonId={selectedSeasonId}
+                selectedCompetitionId={selectedCompetitionId}
+                onSeasonChange={handleSeasonChange}
+                onCompetitionChange={setSelectedCompetitionId}
+                onCreated={(teamSeason) => {
+                  if (teamSeason.competitionId) {
+                    void refreshTeamSeasons(teamSeason.competitionId);
+                  }
+                }}
+              />
+              <TeamSeasonCatalog
+                token={token}
+                teamSeasons={teamSeasons}
+                competitions={competitions}
+                onChanged={() => {
+                  if (selectedCompetitionId) {
+                    void refreshTeamSeasons(selectedCompetitionId);
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-6">
+              <PlayerForm
+                token={token}
+                organizationId={organizationId}
+                onCreated={(player) => {
+                  setPlayers((current) => [
+                    ...current.filter((row) => row.id !== player.id),
+                    player,
+                  ]);
+                }}
+              />
+              <PlayerCatalog token={token} players={players} onChanged={refreshCatalog} />
+            </div>
+            <div className="space-y-6">
+              <RosterForm
+                token={token}
+                teamSeasons={teamSeasons}
+                players={players}
+                onCreated={() => setRosterReload((value) => value + 1)}
+              />
+            </div>
+            <div className="space-y-6">
               <GameForm
                 token={token}
                 seasons={seasons}
@@ -1570,91 +1659,18 @@ export function AdminConsole() {
               />
             </div>
 
-            <section
-              data-testid="list-teams"
-              className="border border-line-strong bg-raised p-5 md:p-6"
-            >
-              <h2 className="font-display text-headline-sm uppercase text-ink">
-                Equipos creados
-              </h2>
-              <p className="mt-1 font-body text-body-sm text-ink-muted">
-                Solo los equipos creados en esta sesión.
-              </p>
-              {teams.length === 0 ? (
-                <div className="mt-4">
-                  <Empty>Todavía no hay equipos creados.</Empty>
-                </div>
-              ) : (
-                <ul className="mt-4">
-                  {teams.map((team) => (
-                    <RecordRow
-                      key={team.id}
-                      id={team.id}
-                      name={team.name}
-                      meta={[team.abbreviation, team.slug].filter(Boolean).join(" · ")}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section
-              data-testid="list-players"
-              className="border border-line-strong bg-raised p-5 md:p-6"
-            >
-              <h2 className="font-display text-headline-sm uppercase text-ink">
-                Jugadores creados
-              </h2>
-              <p className="mt-1 font-body text-body-sm text-ink-muted">
-                Solo los jugadores creados en esta sesión.
-              </p>
-              {players.length === 0 ? (
-                <div className="mt-4">
-                  <Empty>Todavía no hay jugadores creados.</Empty>
-                </div>
-              ) : (
-                <ul className="mt-4">
-                  {players.map((player) => (
-                    <RecordRow
-                      key={player.id}
-                      id={player.id}
-                      name={`${player.firstName} ${player.lastName}`}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section
-              data-testid="list-roster"
-              className="border border-line-strong bg-raised p-5 md:p-6"
-            >
-              <h2 className="font-display text-headline-sm uppercase text-ink">
-                Roster de esta sesión
-              </h2>
-              {rosterEntries.length === 0 ? (
-                <div className="mt-4">
-                  <Empty>Todavía no hay entradas de roster.</Empty>
-                </div>
-              ) : (
-                <ul className="mt-4">
-                  {rosterEntries.map((entry) => (
-                    <RecordRow
-                      key={entry.id}
-                      id={entry.id}
-                      name={`${entry.firstName} ${entry.lastName}`}
-                      meta={[entry.jersey ? `#${entry.jersey}` : null, entry.primaryPosition]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
+            <div className="xl:col-span-2">
+              <RosterCatalog
+                token={token}
+                teamSeasons={teamSeasons}
+                rosters={rosters}
+                onChanged={() => setRosterReload((value) => value + 1)}
+              />
+            </div>
 
             <section
               data-testid="list-games"
-              className="border border-line-strong bg-raised p-5 md:p-6"
+              className="border border-line-strong bg-raised p-5 md:p-6 xl:col-span-2"
             >
               <h2 className="font-display text-headline-sm uppercase text-ink">
                 Juegos de la temporada
