@@ -116,6 +116,8 @@ const SMALL_BUTTON =
 const SMALL_DANGER =
   "inline-flex min-h-9 items-center justify-center border border-line-strong px-3 font-label-caps text-label-caps uppercase text-accent transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-60";
 const EMPTY = "font-body text-body-sm text-ink-muted";
+const CREATE_MEMBERSHIP_REQUIRED =
+  "Añade al menos una membresía para crear el usuario.";
 
 function errorText(error: unknown): string {
   return error instanceof AdminApiError
@@ -372,6 +374,7 @@ function CreateUserCard({
 
   function removeDraft(index: number) {
     setDrafts((current) => current.filter((_, position) => position !== index));
+    setMessage(null);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -380,6 +383,7 @@ function CreateUserCard({
     setErrors(nextErrors);
     setMessage(null);
     if (Object.keys(nextErrors).length > 0) return;
+    if (drafts.length === 0) return;
 
     setPending(true);
     try {
@@ -392,10 +396,7 @@ function CreateUserCard({
       setDraftMessage(null);
       setMessage({
         kind: "ok",
-        text:
-          drafts.length === 0
-            ? "Usuario creado sin membresía: existirá, pero no podrá iniciar sesión hasta que le asignes una."
-            : `Usuario creado con ${drafts.length} membresía${drafts.length === 1 ? "" : "s"}.`,
+        text: `Usuario creado con ${drafts.length} membresía${drafts.length === 1 ? "" : "s"}.`,
       });
     } catch (error) {
       if (error instanceof AdminApiError && error.status === 401) {
@@ -413,7 +414,7 @@ function CreateUserCard({
       testId="form-create-user"
       kicker="Paso 1"
       title="Crear usuario"
-      description="La cuenta recibe una contraseña inicial. Las membresías son opcionales, pero sin ellas no puede iniciar sesión en ningún ámbito."
+      description="La cuenta recibe una contraseña inicial y al menos una membresía. Sin membresía no aparecería en esta lista ni podría iniciar sesión."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Nombre" htmlFor="user-name" error={errors.name}>
@@ -462,7 +463,8 @@ function CreateUserCard({
             </span>
           </div>
           <p className="mt-1 font-body text-body-sm text-ink-muted">
-            Sin membresía la cuenta existe, pero no puede iniciar sesión en ningún ámbito.
+            Añade al menos una membresía. Una cuenta sin membresía no aparece en la lista al
+            recargar y no puede iniciar sesión.
           </p>
           <div className="mt-3">
             <ScopePicker
@@ -510,7 +512,23 @@ function CreateUserCard({
         </div>
 
         <FormMessage message={message} />
-        <button type="submit" disabled={pending} className={`${BUTTON} w-full`}>
+        {drafts.length === 0 ? (
+          <p
+            id="create-user-membership-required"
+            role="status"
+            className="border-l-4 border-accent bg-accent-soft px-3 py-2 font-body text-body-sm text-ink"
+          >
+            {CREATE_MEMBERSHIP_REQUIRED}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          disabled={pending || drafts.length === 0}
+          aria-describedby={
+            drafts.length === 0 ? "create-user-membership-required" : undefined
+          }
+          className={`${BUTTON} w-full`}
+        >
           {pending ? "Creando…" : "Crear usuario"}
         </button>
       </form>
@@ -841,7 +859,7 @@ function UsersTable({
                             : "border-b border-line bg-table-alt align-top"
                         }
                       >
-                        <td className="px-3 py-3 font-mono text-[12px] break-all text-ink">
+                        <td className="px-3 py-3 font-mono text-[12px] whitespace-nowrap text-ink">
                           {user.email}
                         </td>
                         <td className="px-3 py-3 font-body text-body-sm text-ink">
