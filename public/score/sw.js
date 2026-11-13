@@ -1,15 +1,27 @@
-/* Service worker for the scorer shell. Scoped to /score by registration. */
-const CACHE_VERSION = "v2";
+/* Service worker for the real scorer under /score. Registration scopes it there. */
+const CACHE_VERSION = "v4";
 const CACHE_NAME = `olb-score-shell-${CACHE_VERSION}`;
 const SCORE_ROOT = "/score";
-const SHELL_ASSETS = [SCORE_ROOT, "/score/manifest.webmanifest", "/score/icon.svg"];
+const SHELL_ASSETS = [
+  SCORE_ROOT,
+  "/score/new",
+  "/score/manifest.webmanifest",
+  "/score/icon.svg",
+];
+const OFFLINE_SHELL_MESSAGE = "olb-score-offline-shell";
+const OFFLINE_SHELL_MARKER = "/score/__offline-shell";
 
 function isScorePath(pathname) {
   return pathname === SCORE_ROOT || pathname.startsWith(`${SCORE_ROOT}/`);
 }
 
 function isCacheFirstAsset(pathname) {
-  return pathname.startsWith("/_next/static/") || pathname.startsWith("/score/icons/") || pathname === "/score/icon.svg";
+  return (
+    pathname.startsWith("/_next/static/") ||
+    pathname.startsWith("/score/icons/") ||
+    pathname === "/score/icon.svg" ||
+    pathname === "/score/manifest.webmanifest"
+  );
 }
 
 self.addEventListener("install", (event) => {
@@ -50,7 +62,45 @@ async function cacheFirst(request) {
   }
 }
 
-async function networkFirst(request) {
+async function notifyOfflineShell(event) {
+  const message = { type: OFFLINE_SHELL_MESSAGE };
+
+  // The navigation request is handled before the page mounts, so the message
+  // can be lost. The marker survives and the notice consumes it on startup.
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(
+    new Request(new URL(OFFLINE_SHELL_MARKER, self.location.origin).href),
+    new Response(String(Date.now()), {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    }),
+  );
+
+  const client = event.clientId ? await self.clients.get(event.clientId) : null;
+  if (client) {
+    client.postMessage(message);
+    return;
+  }
+  const clients = await self.clients.matchAll({ type: "window" });
+  for (const entry of clients) entry.postMessage(message);
+}
+
+function offlineResponse() {
+  return new Response(
+    "Anotador sin conexión. Abre el juego una vez con red para guardar su shell.",
+    {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    },
+  );
+}
+
+/**
+ * Online it refreshes the cached HTML of every visited /score route. Offline it
+ * serves that exact route when it was visited before; otherwise it falls back
+ * to the cached /score shell and tells the page so the UI can explain why.
+ */
+async function networkFirstNavigation(event) {
+  const request = event.request;
   const cache = await caches.open(CACHE_NAME);
 
   try {
@@ -61,15 +111,28 @@ async function networkFirst(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
 
-    if (request.mode === "navigate") {
-      const shell = await cache.match(SCORE_ROOT);
-      if (shell) return shell;
+    const shell = await cache.match(SCORE_ROOT);
+    if (shell) {
+      // Write the marker before the document starts so the notice can read it.
+      await notifyOfflineShell(event);
+      return shell;
     }
 
-    return new Response("Anotador sin conexión. Recarga con red para preparar el shell.", {
-      status: 503,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+    return offlineResponse();
+  }
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) await cache.put(request, response.clone());
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return offlineResponse();
   }
 }
 
@@ -85,8 +148,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Never intercept portal or admin routes.
+  // Never intercept portal, admin or any other route outside /score.
   if (!isScorePath(url.pathname)) return;
+
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirstNavigation(event));
+    return;
+  }
 
   event.respondWith(networkFirst(request));
 });

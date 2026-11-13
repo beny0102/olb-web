@@ -29,6 +29,7 @@ import {
   type RemoteGameStatus,
 } from "@/lib/scorer/game-status";
 import { localStore } from "@/lib/scorer/store";
+import { exportLocalBundle, importLocalBundle } from "@/lib/scorer/transfer";
 import type { LocalGame } from "@/lib/scorer/types";
 
 interface LocalRow {
@@ -77,6 +78,10 @@ export default function Home() {
   const [loadingLeague, setLoadingLeague] = useState(false);
 
   const [preparing, setPreparing] = useState<string | null>(null);
+  const [transferNotice, setTransferNotice] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const importInput = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -221,6 +226,64 @@ export default function Home() {
     void loadLeague();
   }, [loadLeague]);
 
+  async function exportGames(): Promise<void> {
+    setTransferNotice(null);
+    setTransferError(null);
+    try {
+      const bundle = await exportLocalBundle();
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `olb-local-games-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTransferNotice(
+        bundle.games.length === 1
+          ? "Exportado 1 juego local."
+          : `Exportados ${bundle.games.length} juegos locales.`,
+      );
+    } catch {
+      setTransferError("No pudimos exportar las partidas locales de este dispositivo.");
+    }
+  }
+
+  async function importGames(file: File): Promise<void> {
+    setImporting(true);
+    setTransferNotice(null);
+    setTransferError(null);
+    try {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(await file.text());
+      } catch {
+        throw new Error("El archivo no es un paquete de partidas locales válido.");
+      }
+
+      const summary = await importLocalBundle(parsed);
+      setTransferNotice(
+        `Importados: ${summary.games} ${
+          summary.games === 1 ? "juego" : "juegos"
+        }, ${summary.events} ${summary.events === 1 ? "jugada" : "jugadas"}. ` +
+          `Omitidos: ${summary.skipped}.`,
+      );
+      await loadLocal();
+    } catch (error) {
+      setTransferError(
+        error instanceof Error && error.message.trim() !== ""
+          ? error.message
+          : "No pudimos importar el archivo.",
+      );
+    } finally {
+      if (mounted.current) setImporting(false);
+      if (importInput.current) importInput.current.value = "";
+    }
+  }
+
   async function prepare(game: ApiGame): Promise<void> {
     setPreparing(game.id);
     try {
@@ -328,6 +391,68 @@ export default function Home() {
               ))}
             </ul>
           )}
+        </section>
+
+        <section aria-labelledby="transfer-heading">
+          <div className="mb-space-sm flex items-end justify-between gap-space-md">
+            <h2
+              id="transfer-heading"
+              className="font-display text-headline-sm text-ink"
+            >
+              Migrar partidas locales
+            </h2>
+            <span className="font-label-caps text-label-caps uppercase text-ink-muted">
+              Archivo
+            </span>
+          </div>
+
+          <div className="border border-line bg-raised px-space-md py-space-md">
+            <p className="font-body text-body-md text-ink-muted">
+              Si vienes del scorer anterior, exporta allá e importa el archivo aquí.
+              Este navegador no puede leer el otro origen automáticamente.
+            </p>
+
+            <div className="mt-space-md flex flex-col gap-space-sm sm:flex-row sm:flex-wrap">
+              <button
+                type="button"
+                onClick={() => void exportGames()}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-none border border-line-strong px-space-md font-label-caps text-label-caps uppercase text-ink hover:border-accent hover:text-accent sm:w-auto"
+              >
+                Exportar partidas locales
+              </button>
+              <label className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-none border border-line-strong px-space-md font-label-caps text-label-caps uppercase text-ink hover:border-accent hover:text-accent sm:w-auto">
+                {importing ? "Importando…" : "Importar archivo"}
+                <input
+                  ref={importInput}
+                  type="file"
+                  accept="application/json,.json"
+                  className="sr-only"
+                  disabled={importing}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void importGames(file);
+                  }}
+                />
+              </label>
+            </div>
+
+            {transferNotice ? (
+              <p
+                role="status"
+                className="mt-space-sm border-l-4 border-gold bg-surface-low px-space-sm py-space-sm font-body text-body-sm text-ink"
+              >
+                {transferNotice}
+              </p>
+            ) : null}
+            {transferError ? (
+              <p
+                role="alert"
+                className="mt-space-sm border-l-4 border-accent bg-accent-soft px-space-sm py-space-sm font-body text-body-sm text-ink"
+              >
+                {transferError}
+              </p>
+            ) : null}
+          </div>
         </section>
 
         {user ? (

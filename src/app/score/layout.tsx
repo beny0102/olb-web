@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/components/scorer/auth-provider";
+import { ScoreOfflineNotice } from "@/components/score/offline-notice";
 import { ScorePwaRegister } from "@/components/score/pwa-register";
 import { SCORE_MANIFEST_PATH } from "@/lib/score";
 
@@ -25,6 +26,7 @@ export const viewport: Viewport = {
 export default function ScoreLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div data-league="metropolitana" className="portal-shell min-h-dvh font-body">
+      <ScoreOfflineNotice />
       <AuthProvider>{children}</AuthProvider>
       <ScorePwaRegister />
     </div>
