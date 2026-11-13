@@ -20,6 +20,7 @@ import {
   deleteSeason,
   deleteTeam,
   deleteTeamSeason,
+  importRoster,
   updateCompetition,
   updatePlayer,
   updateRosterEntry,
@@ -27,6 +28,14 @@ import {
   updateTeam,
   updateTeamSeason,
 } from "@/lib/admin-api";
+import {
+  parseRosterCsv,
+  rosterCsvPayload,
+  rosterImportErrorMessage,
+  ROSTER_ACTION_LABELS,
+  type RosterImportResult,
+  type RosterCsvParseResult,
+} from "@/lib/admin-transfer";
 import type {
   LeagueCompetition,
   LeagueRosterEntry,
@@ -160,7 +169,11 @@ function CatalogCard({
   children: ReactNode;
 }) {
   return (
-    <section data-testid={testId} className="border border-line-strong bg-raised p-5 md:p-6">
+    <section
+      id={testId}
+      data-testid={testId}
+      className="border border-line-strong bg-raised p-5 md:p-6"
+    >
       <h2 className="font-display text-headline-sm uppercase text-ink">{title}</h2>
       <p className="mt-1 font-body text-body-sm text-ink-muted">{description}</p>
       {message ? (
@@ -1210,6 +1223,193 @@ export function PlayerCatalog({
 // ---------------------------------------------------------------------------
 // Rosters
 
+function rosterImportErrorText(error: unknown): string {
+  if (error instanceof AdminApiError) {
+    return rosterImportErrorMessage(error.status, error.detail);
+  }
+  return "Error inesperado. Inténtalo de nuevo.";
+}
+
+function RosterCsvImport({
+  token,
+  teamSeason,
+  onImported,
+}: {
+  token: string;
+  teamSeason: LeagueTeamSeason;
+  onImported: () => Promise<void> | void;
+}) {
+  const [text, setText] = useState("");
+  const [parsed, setParsed] = useState<RosterCsvParseResult | null>(null);
+  const [preview, setPreview] = useState<RosterImportResult | null>(null);
+  const [applied, setApplied] = useState<RosterImportResult | null>(null);
+  const [pending, setPending] = useState<"preview" | "apply" | null>(null);
+  const [message, setMessage] = useState<Message>(null);
+
+  function resetDerived() {
+    setParsed(null);
+    setPreview(null);
+    setApplied(null);
+    setMessage(null);
+  }
+
+  async function handlePreview() {
+    const result = parseRosterCsv(text);
+    setParsed(result);
+    setPreview(null);
+    setApplied(null);
+    setMessage(null);
+
+    if (result.rows.length === 0) {
+      setMessage({
+        kind: "error",
+        text: "El CSV no contiene filas válidas. Usa una línea por jugador.",
+      });
+      return;
+    }
+    if (result.errors.length > 0) {
+      setMessage({
+        kind: "error",
+        text: `Corrige ${result.errors.length} fila(s) antes de previsualizar.`,
+      });
+      return;
+    }
+
+    setPending("preview");
+    try {
+      const next = await importRoster(token, teamSeason.id, rosterCsvPayload(result.rows), true);
+      setPreview(next);
+      setMessage({
+        kind: "ok",
+        text: `Previsualización: ${next.created.players} jugador(es) nuevo(s), ${next.created.rosterEntries} alta(s) y ${next.updated.rosterEntries} actualización(es).`,
+      });
+    } catch (error) {
+      setMessage({ kind: "error", text: rosterImportErrorText(error) });
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function handleApply() {
+    if (!parsed || parsed.rows.length === 0 || parsed.errors.length > 0) return;
+    setPending("apply");
+    setMessage(null);
+    try {
+      const result = await importRoster(
+        token,
+        teamSeason.id,
+        rosterCsvPayload(parsed.rows),
+        false,
+      );
+      setPreview(result);
+      setApplied(result);
+      setMessage({
+        kind: "ok",
+        text: `Roster importado: ${result.created.players} jugador(es) nuevo(s), ${result.created.rosterEntries} alta(s) y ${result.updated.rosterEntries} actualización(es).`,
+      });
+      await onImported();
+    } catch (error) {
+      setMessage({ kind: "error", text: rosterImportErrorText(error) });
+    } finally {
+      setPending(null);
+    }
+  }
+
+  const canApply =
+    parsed !== null &&
+    parsed.rows.length > 0 &&
+    parsed.errors.length === 0 &&
+    applied === null &&
+    pending === null;
+
+  return (
+    <details className="mt-3 border border-line">
+      <summary className="cursor-pointer px-3 py-2 font-label-caps text-label-caps uppercase text-ink transition-colors hover:text-accent">
+        Pegar CSV
+      </summary>
+      <div className="border-t border-line px-3 py-3">
+        <p className="font-body text-body-sm text-ink-muted">
+          Una línea por jugador: <span className="font-semibold text-ink">nombre, apellido, dorsal, posición</span>.
+          Dorsal y posición pueden quedar vacíos. Las comillas permiten nombres con comas.
+        </p>
+        <textarea
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value);
+            resetDerived();
+          }}
+          rows={5}
+          placeholder={"Ana,García,12,SS\nLuis,Pérez,,CF"}
+          className="mt-2 min-h-32 w-full border border-line-strong bg-raised px-2 py-2 font-body text-body-sm text-ink outline-none transition-colors focus:border-band"
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void handlePreview()}
+            disabled={text.trim().length === 0 || pending !== null}
+            className={SMALL_BUTTON}
+          >
+            {pending === "preview" ? "Previsualizando…" : "Previsualizar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleApply()}
+            disabled={!canApply}
+            className={SMALL_BUTTON}
+          >
+            {pending === "apply" ? "Aplicando…" : "Aplicar"}
+          </button>
+        </div>
+        {message ? (
+          <div className="mt-3">
+            <FormMessage message={message} />
+          </div>
+        ) : null}
+        {parsed && parsed.errors.length > 0 ? (
+          <ul className="mt-3 list-disc border-l-4 border-accent bg-accent-soft px-6 py-2 font-body text-body-sm text-ink">
+            {parsed.errors.map((error) => (
+              <li key={`${error.line}-${error.message}`}>
+                Línea {error.line}: {error.message}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {parsed && parsed.rows.length > 0 ? (
+          <TableWrap>
+            <thead>
+              <tr>
+                <th className={HEAD}>Fila</th>
+                <th className={HEAD}>Nombre</th>
+                <th className={HEAD}>Dorsal</th>
+                <th className={HEAD}>Posición</th>
+                <th className={HEAD}>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parsed.rows.map((row, index) => {
+                const resultRow = preview?.rows[index];
+                return (
+                  <tr key={`${row.firstName}-${row.lastName}-${index}`}>
+                    <td className={CELL}>{index + 1}</td>
+                    <td className={CELL}>
+                      {row.firstName} {row.lastName}
+                    </td>
+                    <td className={CELL}>{row.jersey || "—"}</td>
+                    <td className={CELL}>{row.primaryPosition || "—"}</td>
+                    <td className={CELL}>
+                      {resultRow ? ROSTER_ACTION_LABELS[resultRow.action] : "Pendiente"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </TableWrap>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
 export function RosterCatalog({
   token,
   teamSeasons,
@@ -1312,6 +1512,11 @@ export function RosterCatalog({
                     {entries.length} jugador(es)
                   </span>
                 </div>
+                <RosterCsvImport
+                  token={token}
+                  teamSeason={teamSeason}
+                  onImported={onChanged}
+                />
                 {entries.length === 0 ? (
                   <p className="mt-2 font-body text-body-sm text-ink-muted">
                     Aún no hay jugadores en este roster.
