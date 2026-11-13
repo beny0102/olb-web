@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Anotador OLB">
+  <rect width="512" height="512" fill="#111b31"/>
+  <path d="M256 88 136 130v114c0 88 50 151 120 180 70-29 120-92 120-180V130L256 88Z" fill="none" stroke="#cba72f" stroke-width="24"/>
+  <path d="M196 254h120M256 194v120" stroke="#ffffff" stroke-width="24" stroke-linecap="square"/>
+</svg>

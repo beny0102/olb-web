@@ -1,0 +1,24 @@
+export const SCORE_BASE_PATH = "/score";
+export const SCORE_SW_PATH = "/score/sw.js";
+export const SCORE_MANIFEST_PATH = "/score/manifest.webmanifest";
+export const SCORE_ICON_PATH = "/score/icon.svg";
+
+export const SCORE_CACHE_VERSION = "v1";
+
+/** DOM event used by the registration component to update the status badge. */
+export const SCORE_SW_EVENT = "olb-score-sw";
+
+/** Versioned cache name shared by the worker, the status badge and tests. */
+export function scoreCacheName(version: string = SCORE_CACHE_VERSION): string {
+  return `olb-score-shell-${version}`;
+}
+
+export const SCORE_CACHE_NAME = scoreCacheName();
+
+/**
+ * True only for the score area. Keeps `/scoreboard`, `/admin` and portal
+ * routes out of the worker's scope checks.
+ */
+export function isScorePath(pathname: string): boolean {
+  return pathname === SCORE_BASE_PATH || pathname.startsWith(`${SCORE_BASE_PATH}/`);
+}

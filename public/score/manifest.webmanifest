@@ -1,0 +1,19 @@
+{
+  "name": "Anotador OLB",
+  "short_name": "Anotador",
+  "description": "Anotador de partidos de Open League Baseball.",
+  "lang": "es",
+  "start_url": "/score",
+  "scope": "/score",
+  "display": "standalone",
+  "background_color": "#f9f9ff",
+  "theme_color": "#111b31",
+  "icons": [
+    {
+      "src": "/score/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
