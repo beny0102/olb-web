@@ -31,6 +31,14 @@ import type {
   LeagueTeamSeason,
   LeagueTeamSeasonView,
 } from "./types";
+import {
+  exportFileName,
+  leagueBundleMetadata,
+  type LeagueBundle,
+  type LeagueImportResult,
+  type RosterImportResult,
+  type RosterImportRowPayload,
+} from "./admin-transfer";
 
 /**
  * Browser-only client for the public reads and the scoped `/admin` writes.
@@ -49,6 +57,8 @@ export class AdminApiError extends Error {
     message: string,
     /** Raw `message` from the API error body, when present. */
     readonly detail: string | null = null,
+    /** Full API error body, used for import conflict lists. */
+    readonly payload: unknown = null,
   ) {
     super(message);
     this.name = "AdminApiError";
@@ -104,6 +114,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       response.status,
       adminErrorMessage(response.status),
       apiMessage(payload),
+      payload,
     );
   }
   return payload as T;
@@ -230,7 +241,12 @@ export async function deleteGame(token: string, id: string): Promise<{ deleted: 
     });
   } catch (error) {
     if (error instanceof AdminApiError && error.status === 409) {
-      throw new AdminApiError(409, gameDeleteErrorMessage(error.detail), error.detail);
+      throw new AdminApiError(
+        409,
+        gameDeleteErrorMessage(error.detail),
+        error.detail,
+        error.payload,
+      );
     }
     throw error;
   }
@@ -385,8 +401,101 @@ async function deleteCatalogRow<T>(
     return await request<T>(path, { method: "DELETE", token });
   } catch (error) {
     if (error instanceof AdminApiError && error.status === 409) {
-      throw new AdminApiError(409, catalogDeleteErrorMessage(error.detail), error.detail);
+      throw new AdminApiError(
+        409,
+        catalogDeleteErrorMessage(error.detail),
+        error.detail,
+        error.payload,
+      );
     }
     throw error;
   }
+}
+
+export interface LeagueExport {
+  fileName: string;
+  bundle: LeagueBundle;
+  content: string;
+  bytes: number;
+}
+
+/**
+ * Raw fetch for the export download: unlike `request`, it keeps the body text
+ * and the `Content-Disposition` header.
+ */
+export async function exportLeague(
+  token: string,
+  seasonId?: string | null,
+): Promise<LeagueExport> {
+  const query = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : "";
+
+  let response: Response;
+  try {
+    response = await fetch(`${BASE}/admin/export${query}`, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (error) {
+    const timedOut =
+      typeof DOMException !== "undefined" &&
+      error instanceof DOMException &&
+      error.name === "TimeoutError";
+    throw new AdminApiError(
+      0,
+      timedOut
+        ? "La API tardó demasiado en responder. Inténtalo de nuevo."
+        : adminErrorMessage(0),
+    );
+  }
+
+  const content = await response.text();
+  const payload = readJson(content);
+  if (!response.ok) {
+    throw new AdminApiError(
+      response.status,
+      adminErrorMessage(response.status),
+      apiMessage(payload),
+      payload,
+    );
+  }
+
+  const bundle = (payload ?? {}) as LeagueBundle;
+  const metadata = leagueBundleMetadata(payload);
+  return {
+    fileName: exportFileName(
+      response.headers.get("Content-Disposition"),
+      metadata.organizationSlug,
+    ),
+    bundle,
+    content,
+    bytes: new TextEncoder().encode(content).length,
+  };
+}
+
+/** Sends the bundle itself as the body, exactly as the API expects it. */
+export function importLeague(
+  token: string,
+  bundle: LeagueBundle,
+  dryRun: boolean,
+): Promise<LeagueImportResult> {
+  return request<LeagueImportResult>(
+    `/admin/import?dryRun=${dryRun ? "true" : "false"}`,
+    { method: "POST", token, body: bundle },
+  );
+}
+
+export function importRoster(
+  token: string,
+  teamSeasonId: string,
+  rows: RosterImportRowPayload[],
+  dryRun: boolean,
+): Promise<RosterImportResult> {
+  return request<RosterImportResult>(
+    `/admin/team-seasons/${encodeURIComponent(teamSeasonId)}/roster-import`,
+    { method: "POST", token, body: { rows, dryRun } },
+  );
 }
