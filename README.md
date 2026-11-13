@@ -96,6 +96,45 @@ olb-api /games/:id/events ──► initial feed
 Polling pauses while the tab is hidden. The score and count always come from
 the API projection; the viewer never re-folds events on the live path.
 
+## Admin
+
+The portal is also the league operator's console. Both pages call the API
+through `NEXT_PUBLIC_API_URL`; no admin data is rendered on the server.
+
+### Setup at `/setup`
+
+A fresh deployment has no users. `/setup` creates the organization, its first
+`active` user and the `org_admin` membership in one call. It asks for the setup
+token, which the API takes from `SETUP_TOKEN` or writes to
+`olb-api/deploy/.setup-token` (mode `0600`) on first boot. The page reports the
+API's `409` once a user exists, so it cannot be replayed. The equivalent CLI
+lives in `olb-api` (`npm run setup`).
+
+### Console at `/admin`
+
+Without a stored session, `/admin` shows the login form (`POST /auth/login` with
+email and password). The Bearer token and identity stay in `localStorage`; the
+console only opens for a caller holding `org_admin`.
+
+- **Catalog**: create and edit seasons, competitions, teams, team seasons and
+  players, and create games for the selected competition.
+- **Roster**: edit a team season's roster by hand or paste a CSV, one player per
+  line as `firstName,lastName,jersey,position`. Imports support a preview,
+  reject repeated names, and can replace the existing roster. Jersey and
+  position may be empty.
+- **Export/import**: download an `olb.league/1` bundle for one season or the
+  whole league, and re-import one with a preview and conflict report. The bundle
+  format is documented in the API README.
+- **Users** at `/admin/users`: create users, change name, email, status and
+  password, and grant or revoke organization, competition and team-season
+  memberships.
+- **Checklist**: the onboarding panel tracks the minimum viable league —
+  season, competition, team seasons, rosters, games and additional users — and
+  links to the page that fixes each missing item.
+
+With `seed:league` the demo credentials are listed in the API README; they are
+for local use only.
+
 ## Development
 
 ```bash
