@@ -3,6 +3,7 @@ import {
   isScorePath,
   SCORE_BASE_PATH,
   SCORE_CACHE_NAME,
+  SCORE_CACHE_VERSION,
   scoreCacheName,
   SCORE_SW_PATH,
 } from "@/lib/score";
@@ -27,7 +28,7 @@ describe("score path scope", () => {
 
 describe("score cache naming", () => {
   it("uses a versioned cache name", () => {
-    expect(SCORE_CACHE_NAME).toBe("olb-score-shell-v1");
+    expect(SCORE_CACHE_NAME).toBe(`olb-score-shell-${SCORE_CACHE_VERSION}`);
     expect(scoreCacheName("v2")).toBe("olb-score-shell-v2");
     expect(scoreCacheName()).toBe(SCORE_CACHE_NAME);
   });
