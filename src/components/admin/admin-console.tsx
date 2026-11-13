@@ -54,6 +54,9 @@ import {
   TeamCatalog,
   TeamSeasonCatalog,
 } from "@/components/admin/catalog-lists";
+import { OnboardingChecklist } from "@/components/admin/onboarding-checklist";
+import { TransferPanel } from "@/components/admin/transfer-panel";
+import { listUsers } from "@/lib/admin-users";
 import type {
   LeagueCompetition,
   LeagueGame,
@@ -97,7 +100,7 @@ function FormCard({
   children: ReactNode;
 }) {
   return (
-    <section data-testid={testId} className="border border-line-strong bg-raised">
+    <section id={testId} data-testid={testId} className="border border-line-strong bg-raised">
       <div className="h-1 bg-band" />
       <div className="p-5 md:p-6">
         <span className="font-label-caps text-label-caps uppercase text-accent">{kicker}</span>
@@ -1161,6 +1164,7 @@ export function AdminConsole() {
   const [gamesReload, setGamesReload] = useState(0);
   const [rosterReload, setRosterReload] = useState(0);
   const [catalogReload, setCatalogReload] = useState(0);
+  const [organizationUserCount, setOrganizationUserCount] = useState(0);
 
   const applyIdentity = useCallback(
     (nextToken: string, nextUser: AdminUser, nextMemberships: AdminMembership[]) => {
@@ -1205,6 +1209,21 @@ export function AdminConsole() {
       .then(setOrganizations)
       .catch(() => setOrganizations([]));
   }, [phase]);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    listUsers(token)
+      .then((rows) => {
+        if (!cancelled) setOrganizationUserCount(rows.length);
+      })
+      .catch(() => {
+        if (!cancelled) setOrganizationUserCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   useEffect(() => {
     if (!token || !organizationId) return;
@@ -1424,6 +1443,51 @@ export function AdminConsole() {
     setCatalogReload((value) => value + 1);
   }
 
+  /** Reloads every list after an import, keeping the current selection when possible. */
+  async function refreshAfterImport(): Promise<void> {
+    if (!organizationId) return;
+    try {
+      const seasonRows = await listSeasons(organizationId);
+      setSeasons(seasonRows);
+      const nextSeason =
+        selectedSeasonId && seasonRows.some((row) => row.id === selectedSeasonId)
+          ? selectedSeasonId
+          : (seasonRows.find((row) => row.status === "active")?.id ??
+            seasonRows[0]?.id ??
+            null);
+      setSelectedSeasonId(nextSeason);
+      setCatalogReload((value) => value + 1);
+
+      if (!nextSeason) {
+        setCompetitions([]);
+        setTeamSeasons([]);
+        setRosters({});
+        setGames([]);
+        return;
+      }
+
+      const competitionRows = await listCompetitions(nextSeason);
+      setCompetitions(competitionRows);
+      const nextCompetition =
+        selectedCompetitionId &&
+        competitionRows.some((row) => row.id === selectedCompetitionId)
+          ? selectedCompetitionId
+          : (competitionRows[0]?.id ?? null);
+      setSelectedCompetitionId(nextCompetition);
+
+      if (!nextCompetition) {
+        setTeamSeasons([]);
+        setRosters({});
+      } else {
+        setTeamSeasons(await listTeamSeasons(nextCompetition));
+        setRosterReload((value) => value + 1);
+      }
+      setGames(await listGames(nextSeason));
+    } catch (error) {
+      setLoadError(errorText(error));
+    }
+  }
+
   if (phase === "booting") {
     return (
       <div className="mx-auto w-full max-w-[1440px] px-4 py-16 md:px-8">
@@ -1545,154 +1609,185 @@ export function AdminConsole() {
         ) : null}
 
         {token && organizationId ? (
-          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-            <div className="space-y-6">
-              <SeasonForm
-                token={token}
-                organizationId={organizationId}
-                onCreated={(season) => {
-                  setSelectedSeasonId(season.id);
-                  void refreshSeasons(season.id);
-                }}
-              />
-              <SeasonCatalog
-                token={token}
-                seasons={seasons}
-                onChanged={() => refreshSeasons(selectedSeasonId ?? undefined)}
-              />
+          <>
+            <OnboardingChecklist
+              data={{
+                seasons: seasons.length,
+                competitions: competitions.length,
+                teamSeasons: teamSeasons.map((teamSeason) => ({
+                  id: teamSeason.id,
+                  rosterCount: rosters[teamSeason.id]?.length ?? 0,
+                })),
+                games: games.length,
+                additionalUsers: Math.max(0, organizationUserCount - 1),
+              }}
+            />
+            <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+              <div className="space-y-6">
+                <SeasonForm
+                  token={token}
+                  organizationId={organizationId}
+                  onCreated={(season) => {
+                    setSelectedSeasonId(season.id);
+                    void refreshSeasons(season.id);
+                  }}
+                />
+                <SeasonCatalog
+                  token={token}
+                  seasons={seasons}
+                  onChanged={() => refreshSeasons(selectedSeasonId ?? undefined)}
+                />
+              </div>
+              <div className="space-y-6">
+                <CompetitionForm
+                  token={token}
+                  seasons={seasons}
+                  selectedSeasonId={selectedSeasonId}
+                  onSeasonChange={handleSeasonChange}
+                  onCreated={(competition) => {
+                    setSelectedCompetitionId(competition.id);
+                    void refreshCompetitions(competition.seasonId, competition.id);
+                  }}
+                />
+                <CompetitionCatalog
+                  token={token}
+                  competitions={competitions}
+                  onChanged={() => {
+                    if (selectedSeasonId) {
+                      void refreshCompetitions(
+                        selectedSeasonId,
+                        selectedCompetitionId ?? undefined,
+                      );
+                    }
+                  }}
+                />
+              </div>
+              <div className="space-y-6">
+                <TeamForm
+                  token={token}
+                  organizationId={organizationId}
+                  onCreated={(team) => {
+                    setTeams((current) => [...current.filter((row) => row.id !== team.id), team]);
+                  }}
+                />
+                <TeamCatalog token={token} teams={teams} onChanged={refreshCatalog} />
+              </div>
+              <div className="space-y-6">
+                <TeamSeasonForm
+                  token={token}
+                  seasons={seasons}
+                  competitions={competitions}
+                  teamOptions={teamOptions}
+                  selectedSeasonId={selectedSeasonId}
+                  selectedCompetitionId={selectedCompetitionId}
+                  onSeasonChange={handleSeasonChange}
+                  onCompetitionChange={setSelectedCompetitionId}
+                  onCreated={(teamSeason) => {
+                    if (teamSeason.competitionId) {
+                      void refreshTeamSeasons(teamSeason.competitionId);
+                    }
+                  }}
+                />
+                <TeamSeasonCatalog
+                  token={token}
+                  teamSeasons={teamSeasons}
+                  competitions={competitions}
+                  onChanged={() => {
+                    if (selectedCompetitionId) {
+                      void refreshTeamSeasons(selectedCompetitionId);
+                    }
+                  }}
+                />
+              </div>
+              <div className="space-y-6">
+                <PlayerForm
+                  token={token}
+                  organizationId={organizationId}
+                  onCreated={(player) => {
+                    setPlayers((current) => [
+                      ...current.filter((row) => row.id !== player.id),
+                      player,
+                    ]);
+                  }}
+                />
+                <PlayerCatalog token={token} players={players} onChanged={refreshCatalog} />
+              </div>
+              <div className="space-y-6">
+                <RosterForm
+                  token={token}
+                  teamSeasons={teamSeasons}
+                  players={players}
+                  onCreated={() => setRosterReload((value) => value + 1)}
+                />
+              </div>
+              <div className="space-y-6">
+                <GameForm
+                  token={token}
+                  seasons={seasons}
+                  competitions={competitions}
+                  teamSeasons={teamSeasons}
+                  selectedSeasonId={selectedSeasonId}
+                  selectedCompetitionId={selectedCompetitionId}
+                  onSeasonChange={handleSeasonChange}
+                  onCompetitionChange={setSelectedCompetitionId}
+                  onCreated={() => {
+                    setGamesReload((value) => value + 1);
+                  }}
+                />
+              </div>
+  
+              <div className="xl:col-span-2">
+                <RosterCatalog
+                  token={token}
+                  teamSeasons={teamSeasons}
+                  rosters={rosters}
+                  onChanged={() => {
+                    if (selectedCompetitionId) {
+                      void refreshTeamSeasons(selectedCompetitionId);
+                    } else {
+                      setRosterReload((value) => value + 1);
+                    }
+                  }}
+                />
+              </div>
+  
+              <div className="xl:col-span-2">
+                <TransferPanel
+                  token={token}
+                  organizationSlug={organization?.slug ?? ""}
+                  seasons={seasons}
+                  selectedSeasonId={selectedSeasonId}
+                  onImported={refreshAfterImport}
+                />
+              </div>
+  
+              <section
+                id="list-games"
+                data-testid="list-games"
+                className="border border-line-strong bg-raised p-5 md:p-6 xl:col-span-2"
+              >
+                <h2 className="font-display text-headline-sm uppercase text-ink">
+                  Juegos de la temporada
+                </h2>
+                {games.length === 0 ? (
+                  <div className="mt-4">
+                    <Empty>Todavía no hay juegos en esta temporada.</Empty>
+                  </div>
+                ) : (
+                  <ul className="mt-4">
+                    {games.map((game) => (
+                      <GameRow
+                        key={game.id}
+                        token={token}
+                        game={game}
+                        onChanged={() => setGamesReload((value) => value + 1)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </section>
             </div>
-            <div className="space-y-6">
-              <CompetitionForm
-                token={token}
-                seasons={seasons}
-                selectedSeasonId={selectedSeasonId}
-                onSeasonChange={handleSeasonChange}
-                onCreated={(competition) => {
-                  setSelectedCompetitionId(competition.id);
-                  void refreshCompetitions(competition.seasonId, competition.id);
-                }}
-              />
-              <CompetitionCatalog
-                token={token}
-                competitions={competitions}
-                onChanged={() => {
-                  if (selectedSeasonId) {
-                    void refreshCompetitions(
-                      selectedSeasonId,
-                      selectedCompetitionId ?? undefined,
-                    );
-                  }
-                }}
-              />
-            </div>
-            <div className="space-y-6">
-              <TeamForm
-                token={token}
-                organizationId={organizationId}
-                onCreated={(team) => {
-                  setTeams((current) => [...current.filter((row) => row.id !== team.id), team]);
-                }}
-              />
-              <TeamCatalog token={token} teams={teams} onChanged={refreshCatalog} />
-            </div>
-            <div className="space-y-6">
-              <TeamSeasonForm
-                token={token}
-                seasons={seasons}
-                competitions={competitions}
-                teamOptions={teamOptions}
-                selectedSeasonId={selectedSeasonId}
-                selectedCompetitionId={selectedCompetitionId}
-                onSeasonChange={handleSeasonChange}
-                onCompetitionChange={setSelectedCompetitionId}
-                onCreated={(teamSeason) => {
-                  if (teamSeason.competitionId) {
-                    void refreshTeamSeasons(teamSeason.competitionId);
-                  }
-                }}
-              />
-              <TeamSeasonCatalog
-                token={token}
-                teamSeasons={teamSeasons}
-                competitions={competitions}
-                onChanged={() => {
-                  if (selectedCompetitionId) {
-                    void refreshTeamSeasons(selectedCompetitionId);
-                  }
-                }}
-              />
-            </div>
-            <div className="space-y-6">
-              <PlayerForm
-                token={token}
-                organizationId={organizationId}
-                onCreated={(player) => {
-                  setPlayers((current) => [
-                    ...current.filter((row) => row.id !== player.id),
-                    player,
-                  ]);
-                }}
-              />
-              <PlayerCatalog token={token} players={players} onChanged={refreshCatalog} />
-            </div>
-            <div className="space-y-6">
-              <RosterForm
-                token={token}
-                teamSeasons={teamSeasons}
-                players={players}
-                onCreated={() => setRosterReload((value) => value + 1)}
-              />
-            </div>
-            <div className="space-y-6">
-              <GameForm
-                token={token}
-                seasons={seasons}
-                competitions={competitions}
-                teamSeasons={teamSeasons}
-                selectedSeasonId={selectedSeasonId}
-                selectedCompetitionId={selectedCompetitionId}
-                onSeasonChange={handleSeasonChange}
-                onCompetitionChange={setSelectedCompetitionId}
-                onCreated={() => {
-                  setGamesReload((value) => value + 1);
-                }}
-              />
-            </div>
-
-            <div className="xl:col-span-2">
-              <RosterCatalog
-                token={token}
-                teamSeasons={teamSeasons}
-                rosters={rosters}
-                onChanged={() => setRosterReload((value) => value + 1)}
-              />
-            </div>
-
-            <section
-              data-testid="list-games"
-              className="border border-line-strong bg-raised p-5 md:p-6 xl:col-span-2"
-            >
-              <h2 className="font-display text-headline-sm uppercase text-ink">
-                Juegos de la temporada
-              </h2>
-              {games.length === 0 ? (
-                <div className="mt-4">
-                  <Empty>Todavía no hay juegos en esta temporada.</Empty>
-                </div>
-              ) : (
-                <ul className="mt-4">
-                  {games.map((game) => (
-                    <GameRow
-                      key={game.id}
-                      token={token}
-                      game={game}
-                      onChanged={() => setGamesReload((value) => value + 1)}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          </div>
+          </>
         ) : null}
       </div>
     </div>
