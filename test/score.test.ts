@@ -5,6 +5,7 @@ import {
   SCORE_CACHE_NAME,
   SCORE_CACHE_VERSION,
   scoreCacheName,
+  scoreGamePath,
   SCORE_SW_PATH,
 } from "@/lib/score";
 
@@ -23,6 +24,13 @@ describe("score path scope", () => {
     expect(isScorePath("/scoreboard")).toBe(false);
     expect(isScorePath("/scoreboard/live")).toBe(false);
     expect(isScorePath("")).toBe(false);
+  });
+});
+
+describe("score game links", () => {
+  it("targets a single game inside the score area", () => {
+    expect(scoreGamePath("game-1")).toBe("/score/game-1");
+    expect(isScorePath(scoreGamePath("game-1"))).toBe(true);
   });
 });
 

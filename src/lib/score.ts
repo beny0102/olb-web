@@ -25,6 +25,11 @@ export function scoreCacheName(version: string = SCORE_CACHE_VERSION): string {
 
 export const SCORE_CACHE_NAME = scoreCacheName();
 
+/** Path of a single game inside the scorer. */
+export function scoreGamePath(gameId: string): string {
+  return `${SCORE_BASE_PATH}/${gameId}`;
+}
+
 /**
  * True only for the score area. Keeps `/scoreboard`, `/admin` and portal
  * routes out of the worker's scope checks.

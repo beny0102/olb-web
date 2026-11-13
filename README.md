@@ -135,6 +135,22 @@ console only opens for a caller holding `org_admin`.
 With `seed:league` the demo credentials are listed in the API README; they are
 for local use only.
 
+## Scorer at `/score`
+
+The scorer now lives inside this app, under `/score`. It replaces the old
+standalone `olb-scorer` on port `3002`, which is retired.
+
+- `/score` lists the games in this browser, the games already prepared from the
+  league and, for an anonymous device, the scheduled games the API exposes.
+- `/score/new` starts a local game; `/score/[id]` opens the scorekeeper and
+  `/score/[id]/verify` checks the finished log.
+- The login form reuses the admin session: both consoles read and write the
+  `olb.admin.token` key in `localStorage`.
+- Local games can be exported to JSON and imported back from `/score`, so a
+  scorekeeper can move a device or recover a game.
+- The score routes are a PWA (`/score` manifest and service worker): the shell
+  loads offline and queued local games stay editable without connection.
+
 ## Development
 
 ```bash

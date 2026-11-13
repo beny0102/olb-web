@@ -57,6 +57,7 @@ import {
 import { OnboardingChecklist } from "@/components/admin/onboarding-checklist";
 import { TransferPanel } from "@/components/admin/transfer-panel";
 import { listUsers } from "@/lib/admin-users";
+import { scoreGamePath } from "@/lib/score";
 import type {
   LeagueCompetition,
   LeagueGame,
@@ -1045,16 +1046,21 @@ function GameRow({
             {game.id}
           </div>
         </div>
-        {scheduled && !editing && !confirming ? (
-          <div className="flex flex-wrap gap-2 md:shrink-0">
-            <button type="button" className={SMALL_BUTTON} onClick={beginEdit}>
-              Reprogramar
-            </button>
-            <button type="button" className={SMALL_DANGER} onClick={beginCancel}>
-              Cancelar
-            </button>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2 md:shrink-0">
+          <Link href={scoreGamePath(game.id)} className={SMALL_BUTTON}>
+            Anotar
+          </Link>
+          {scheduled && !editing && !confirming ? (
+            <>
+              <button type="button" className={SMALL_BUTTON} onClick={beginEdit}>
+                Reprogramar
+              </button>
+              <button type="button" className={SMALL_DANGER} onClick={beginCancel}>
+                Cancelar
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {editing ? (
