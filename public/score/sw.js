@@ -1,5 +1,5 @@
 /* Service worker for the scorer shell. Scoped to /score by registration. */
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `olb-score-shell-${CACHE_VERSION}`;
 const SCORE_ROOT = "/score";
 const SHELL_ASSETS = [SCORE_ROOT, "/score/manifest.webmanifest", "/score/icon.svg"];

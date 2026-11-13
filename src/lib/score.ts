@@ -3,7 +3,7 @@ export const SCORE_SW_PATH = "/score/sw.js";
 export const SCORE_MANIFEST_PATH = "/score/manifest.webmanifest";
 export const SCORE_ICON_PATH = "/score/icon.svg";
 
-export const SCORE_CACHE_VERSION = "v1";
+export const SCORE_CACHE_VERSION = "v2";
 
 /** DOM event used by the registration component to update the status badge. */
 export const SCORE_SW_EVENT = "olb-score-sw";
