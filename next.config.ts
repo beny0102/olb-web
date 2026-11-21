@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: "standalone",
+  experimental: {
+    agentUpgrade: "security",
+  },
   // `@olb/contract` is a local `file:../olb-contract` dependency, so the
   // workspace root sits one level above the web app.
   turbopack: {
