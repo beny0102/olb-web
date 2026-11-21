@@ -3,8 +3,9 @@
 Public game viewer for **Open League Baseball** — scoreboard, event log and a 3D
 pitch view for leagues that do not have a Hawk-Eye budget.
 
-Status: **pre-alpha**. The viewer is real; the pitch trajectory it draws is
-synthetic until `olb-vision` ships calibrated tracks.
+Status: **pre-alpha**. The viewer is real, the admin console and setup flow are
+in place, and the offline scorer is served from `/score`; the pitch trajectory
+is synthetic until `olb-vision` ships calibrated tracks.
 
 ## What it does
 
@@ -12,6 +13,10 @@ synthetic until `olb-vision` ships calibrated tracks.
 | --- | --- |
 | `/` | League portal: official ticker, four score cards, featured game with linescore and telemetry rail, competition slate, day ledger and the patrimony band. Every value comes from `olb-api`; missing domains stay empty. |
 | `/games/[id]` | Scoreboard, count, bases, event log and pitch viewer, polled every 3 s |
+| `/stats` | Standings and season leaders folded from full games |
+| `/admin` | Scoped catalog, roster, transfer and user administration |
+| `/setup` | One-time bootstrap for a deployment without users |
+| `/score` | Offline-first scorekeeper PWA, with `/score/new` and `/score/[id]` |
 | `/demo` | Fully static game replayed from an embedded event log, no backend |
 
 - Markers are folded from the append-only event log by the API; this app only
@@ -159,18 +164,19 @@ npm test
 npm run build
 ```
 
-Tests cover the demo log against the published contract (`isEvent`), the fold
-used by the static demo, and the synthetic pitch geometry.
+Tests cover the portal and viewer against the published contract (`isEvent`),
+the admin and setup clients, the demo fold, the synthetic pitch geometry, and
+the scorer under `test/scorer/`: fold, scoring, lineup, rules, finish, sync,
+recovery, proposals and local-game transfer.
 
 ## What is not here yet
 
 - WebSocket transport with snapshot + delta (ADR 0004). Polling is a stand-in.
-- Auth: the viewer is read-only, but the API still accepts writes from anyone.
 - Real tracks: `olb-vision` does not exist yet.
 - Cloudflare Workers deployment from ADR 0001, wired once there is something
   worth deploying.
-- League pages, standings, player profiles. The portal links only to domains the
-  API actually exposes; there is no standings or player-stats table yet.
+- Player profiles and career pages. Season stats and standings exist at
+  `/stats`; there is no per-player history beyond the current season.
 
 ## Related
 
