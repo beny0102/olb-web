@@ -26,8 +26,10 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 COPY --from=build /app/olb-web/.next/standalone ./
-COPY --from=build /app/olb-web/.next/static ./.next/static
+COPY --from=build /app/olb-web/.next/static ./olb-web/.next/static
+COPY --from=build /app/olb-web/public ./olb-web/public
 
+WORKDIR /app/olb-web
 USER node
 EXPOSE 3000
 
