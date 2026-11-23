@@ -171,7 +171,7 @@ describe("organization catalog reads", () => {
       jsonResponse(200, { teamSeason: { id: "ts-1" }, roster: [] }),
     );
 
-    const view = await getTeamSeason("ts-1");
+    const view = await getTeamSeason(TOKEN, "ts-1");
 
     expect(view.teamSeason.id).toBe("ts-1");
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/team-seasons/ts-1");

@@ -89,6 +89,8 @@ export interface RosterEntry {
   status: "active" | "inactive";
   firstName: string;
   lastName: string;
+  namePublic: boolean;
+  displayName: string;
 }
 
 export interface TeamSeasonView {
@@ -376,7 +378,7 @@ export function listTeams(competitionId: string): Promise<TeamSeason[]> {
 }
 
 export function getTeamSeason(id: string): Promise<TeamSeasonView> {
-  return fetchJson<TeamSeasonView>(`/team-seasons/${encodeURIComponent(id)}`);
+  return fetchJson<TeamSeasonView>(`/admin/team-seasons/${encodeURIComponent(id)}`);
 }
 
 export function listSeasonGames(seasonId: string): Promise<LeagueGame[]> {
@@ -395,7 +397,9 @@ export function getLeagueGame(id: string): Promise<LeagueGameDetail> {
 export function toRosterPlayer(entry: RosterEntry): RosterPlayer {
   return {
     id: entry.playerId,
-    name: `${entry.firstName} ${entry.lastName}`.trim(),
+    name: entry.namePublic
+      ? `${entry.firstName} ${entry.lastName}`.trim()
+      : entry.displayName,
     position: entry.primaryPosition ?? "",
     jersey: entry.jersey ?? "",
   };

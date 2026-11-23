@@ -97,6 +97,9 @@ export interface LeagueRosterEntry {
   status: "active" | "inactive";
   firstName: string;
   lastName: string;
+  namePublic: boolean;
+  /** Full name when publication is consented, otherwise jersey or position. */
+  displayName: string;
 }
 
 export type GameCoverage = "full" | "summary" | "external";

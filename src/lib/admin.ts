@@ -69,7 +69,30 @@ export interface AdminPlayer {
   organizationId: string;
   firstName: string;
   lastName: string;
+  namePublic: boolean;
   createdAt: string;
+}
+
+export interface PlayerConsent {
+  id: string;
+  playerId: string;
+  scope: "public_name";
+  guardianName: string;
+  relationship: string | null;
+  grantedAt: string;
+  revokedAt: string | null;
+  recordedBy: string | null;
+}
+
+export interface PlayerConsentView {
+  playerId: string;
+  namePublic: boolean;
+  consent: PlayerConsent | null;
+}
+
+export interface PlayerConsentPayload {
+  guardianName: string;
+  relationship: string | null;
 }
 
 export interface SeasonFormValues {

@@ -45,6 +45,8 @@ function rosterEntry(
     status: "active",
     firstName: "Jugador",
     lastName: position,
+    namePublic: true,
+    displayName: `Jugador ${position}`,
     ...overrides,
   };
 }

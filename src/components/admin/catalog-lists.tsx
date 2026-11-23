@@ -20,7 +20,9 @@ import {
   deleteSeason,
   deleteTeam,
   deleteTeamSeason,
+  grantNameConsent,
   importRoster,
+  revokeNameConsent,
   updateCompetition,
   updatePlayer,
   updateRosterEntry,
@@ -1039,13 +1041,68 @@ export function PlayerCatalog({
   const [message, setMessage] = useState<Message>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [consentForId, setConsentForId] = useState<string | null>(null);
+  const [guardianName, setGuardianName] = useState("");
+  const [relationship, setRelationship] = useState("");
 
   function beginEdit(player: AdminPlayer) {
     setMessage(null);
     setConfirmingId(null);
+    setConsentForId(null);
     setEditingId(player.id);
     setFirstName(player.firstName);
     setLastName(player.lastName);
+  }
+
+  function beginConsent(player: AdminPlayer) {
+    setMessage(null);
+    setEditingId(null);
+    setConfirmingId(null);
+    setConsentForId(player.id);
+    setGuardianName("");
+    setRelationship("");
+  }
+
+  async function handleGrantConsent(
+    event: FormEvent<HTMLFormElement>,
+    player: AdminPlayer,
+  ) {
+    event.preventDefault();
+    setPending(true);
+    setMessage(null);
+    try {
+      await grantNameConsent(token, player.id, {
+        guardianName: guardianName.trim(),
+        relationship: relationship.trim() || null,
+      });
+      setConsentForId(null);
+      setMessage({
+        kind: "ok",
+        text: `Nombre público autorizado para ${player.firstName} ${player.lastName}.`,
+      });
+      await onChanged();
+    } catch (error) {
+      setMessage({ kind: "error", text: errorText(error) });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handleRevokeConsent(player: AdminPlayer) {
+    setPending(true);
+    setMessage(null);
+    try {
+      await revokeNameConsent(token, player.id);
+      setMessage({
+        kind: "ok",
+        text: `Nombre público oculto para ${player.firstName} ${player.lastName}.`,
+      });
+      await onChanged();
+    } catch (error) {
+      setMessage({ kind: "error", text: errorText(error) });
+    } finally {
+      setPending(false);
+    }
   }
 
   async function handleSave(event: FormEvent<HTMLFormElement>, player: AdminPlayer) {
@@ -1116,7 +1173,7 @@ export function PlayerCatalog({
     <CatalogCard
       testId="list-players"
       title="Jugadores de la organización"
-      description="Edita el nombre o borra el jugador. Si tiene roster, se pide una segunda confirmación."
+      description="Edita el nombre, autoriza su publicación o borra el jugador. El nombre permanece oculto hasta que exista consentimiento del tutor."
       message={message}
     >
       {players.length === 0 ? (
@@ -1129,6 +1186,7 @@ export function PlayerCatalog({
             <tr>
               <th className={HEAD}>Nombre</th>
               <th className={HEAD}>Apellido</th>
+              <th className={HEAD}>Nombre público</th>
               <th className={HEAD}>Acciones</th>
             </tr>
           </thead>
@@ -1138,6 +1196,7 @@ export function PlayerCatalog({
                 <tr>
                   <td className={CELL}>{player.firstName}</td>
                   <td className={CELL}>{player.lastName}</td>
+                  <td className={CELL}>{player.namePublic ? "Sí" : "No"}</td>
                   <td className={`${CELL} whitespace-nowrap`}>
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -1147,6 +1206,24 @@ export function PlayerCatalog({
                       >
                         Editar
                       </button>
+                      {player.namePublic ? (
+                        <button
+                          type="button"
+                          className={SMALL_BUTTON}
+                          disabled={pending}
+                          onClick={() => void handleRevokeConsent(player)}
+                        >
+                          Ocultar nombre
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={SMALL_BUTTON}
+                          onClick={() => beginConsent(player)}
+                        >
+                          Autorizar nombre
+                        </button>
+                      )}
                       <button
                         type="button"
                         className={SMALL_DANGER}
@@ -1159,7 +1236,7 @@ export function PlayerCatalog({
                 </tr>
                 {editingId === player.id ? (
                   <tr>
-                    <td colSpan={3} className="border-b border-line px-2 pb-3">
+                    <td colSpan={4} className="border-b border-line px-2 pb-3">
                       <Editor
                         pending={pending}
                         onCancel={() => setEditingId(null)}
@@ -1191,11 +1268,55 @@ export function PlayerCatalog({
                     </td>
                   </tr>
                 ) : null}
+                {consentForId === player.id ? (
+                  <tr>
+                    <td colSpan={4} className="border-b border-line px-2 pb-3">
+                      <Editor
+                        pending={pending}
+                        onCancel={() => setConsentForId(null)}
+                        onSubmit={(event) => handleGrantConsent(event, player)}
+                      >
+                        <p className="mb-3 font-body text-body-sm text-ink-muted">
+                          Registra quién autoriza publicar el nombre completo de{" "}
+                          {player.firstName} {player.lastName}. Sin este registro, el
+                          público solo verá dorsal y posición.
+                        </p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <Field
+                            label="Nombre del tutor o responsable"
+                            htmlFor={`player-${player.id}-guardian`}
+                          >
+                            <input
+                              id={`player-${player.id}-guardian`}
+                              required
+                              maxLength={120}
+                              value={guardianName}
+                              onChange={(event) => setGuardianName(event.target.value)}
+                              className={INPUT}
+                            />
+                          </Field>
+                          <Field
+                            label="Relación (opcional)"
+                            htmlFor={`player-${player.id}-relationship`}
+                          >
+                            <input
+                              id={`player-${player.id}-relationship`}
+                              maxLength={60}
+                              value={relationship}
+                              onChange={(event) => setRelationship(event.target.value)}
+                              className={INPUT}
+                            />
+                          </Field>
+                        </div>
+                      </Editor>
+                    </td>
+                  </tr>
+                ) : null}
               </Fragment>
             ))}
             {confirmingPlayer ? (
               <tr>
-                <td colSpan={3} className="border-b border-line px-2 pb-3">
+                <td colSpan={4} className="border-b border-line px-2 pb-3">
                   <Confirm
                     text={
                       force

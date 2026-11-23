@@ -12,6 +12,9 @@ import {
   type CompetitionUpdatePayload,
   type GamePayload,
   type GameReschedulePayload,
+  type PlayerConsent,
+  type PlayerConsentPayload,
+  type PlayerConsentView,
   type PlayerPayload,
   type PlayerUpdatePayload,
   type RosterPayload,
@@ -273,9 +276,14 @@ export function listOrganizationPlayers(
   );
 }
 
-/** Public read with the team season and its current roster. */
-export function getTeamSeason(id: string): Promise<LeagueTeamSeasonView> {
-  return request<LeagueTeamSeasonView>(`/team-seasons/${encodeURIComponent(id)}`);
+/** Authenticated read with full player names for the admin console. */
+export function getTeamSeason(
+  token: string,
+  id: string,
+): Promise<LeagueTeamSeasonView> {
+  return request<LeagueTeamSeasonView>(`/admin/team-seasons/${encodeURIComponent(id)}`, {
+    token,
+  });
 }
 
 export function updateSeason(
@@ -358,6 +366,37 @@ export function updatePlayer(
     token,
     body: payload,
   });
+}
+
+export function getNameConsent(
+  token: string,
+  id: string,
+): Promise<PlayerConsentView> {
+  return request<PlayerConsentView>(
+    `/admin/players/${encodeURIComponent(id)}/consent`,
+    { token },
+  );
+}
+
+export function grantNameConsent(
+  token: string,
+  id: string,
+  payload: PlayerConsentPayload,
+): Promise<PlayerConsent> {
+  return request<PlayerConsent>(
+    `/admin/players/${encodeURIComponent(id)}/consent`,
+    { method: "POST", token, body: payload },
+  );
+}
+
+export function revokeNameConsent(
+  token: string,
+  id: string,
+): Promise<{ playerId: string; namePublic: false; revoked: number }> {
+  return request<{ playerId: string; namePublic: false; revoked: number }>(
+    `/admin/players/${encodeURIComponent(id)}/consent`,
+    { method: "DELETE", token },
+  );
 }
 
 export interface DeletePlayerResponse {

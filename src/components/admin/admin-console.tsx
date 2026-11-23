@@ -1332,7 +1332,9 @@ export function AdminConsole() {
       return;
     }
     let cancelled = false;
-    Promise.all(teamSeasons.map((teamSeason) => getTeamSeason(teamSeason.id)))
+    Promise.all(
+      teamSeasons.map((teamSeason) => getTeamSeason(token, teamSeason.id)),
+    )
       .then((views) => {
         if (cancelled) return;
         const next: Record<string, LeagueRosterEntry[]> = {};

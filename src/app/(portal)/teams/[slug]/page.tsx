@@ -132,7 +132,9 @@ function Roster({
                     scope="row"
                     className="px-3 py-2 font-display text-title-md uppercase text-ink"
                   >
-                    {entry.firstName} {entry.lastName}
+                    {entry.namePublic
+                      ? `${entry.firstName} ${entry.lastName}`.trim()
+                      : entry.displayName}
                   </th>
                   <td className="px-3 py-2 font-label-caps text-label-caps uppercase text-ink-muted">
                     {entry.primaryPosition ?? "—"}
