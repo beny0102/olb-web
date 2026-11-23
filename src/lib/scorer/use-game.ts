@@ -156,7 +156,12 @@ export function useGame(gameId: string) {
         const parsed = parseEvent({ ...event, seq: next });
         await store.appendEvent(gameId, parsed);
         const snapshot = await readSnapshot(gameId);
-        if (snapshot) commit(snapshot);
+        if (snapshot) {
+          commit(snapshot);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("olb-local-change"));
+          }
+        }
         return snapshot;
       } catch (caught) {
         if (mounted.current) setError(messageFor(caught));

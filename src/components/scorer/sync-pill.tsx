@@ -130,9 +130,11 @@ export function SyncPill({ gameId }: SyncPillProps) {
       void runSync();
     };
     const handleOffline = () => setOnline(false);
+    const handleLocalChange = () => void refresh();
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("olb-local-change", handleLocalChange);
 
     void runSync();
 
@@ -144,16 +146,19 @@ export function SyncPill({ gameId }: SyncPillProps) {
       window.clearInterval(timer);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("olb-local-change", handleLocalChange);
     };
-  }, [runSync]);
+  }, [refresh, runSync]);
 
   const offline = !online || failureOffline;
+  const pendingLabel =
+    counts.pending === 1 ? "1 pendiente" : `${counts.pending} pendientes`;
   const label = syncing
     ? "Sincronizando…"
     : offline
-      ? `Sin conexión · ${counts.pending} pendientes`
+      ? `Sin conexión · ${pendingLabel}`
       : counts.pending > 0
-        ? `${counts.pending} pendientes`
+        ? pendingLabel
         : `Al día · ${counts.total} eventos`;
 
   return (
