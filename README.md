@@ -33,8 +33,8 @@ is synthetic until `olb-vision` ships calibrated tracks.
 Next.js 16 (App Router) · React 19 · React Three Fiber 9 · three.js · Tailwind
 CSS 4 · TypeScript strict. No UI kit, no state library.
 
-The homepage lives in the `(portal)` route group with its own light shell; the
-viewer routes keep the dark shell in `(viewer)`. Semantic tokens live in
+The homepage and public pages live in the `(portal)` route group with their own
+light shell; the score routes keep the dark shell. Semantic tokens live in
 `src/theme/tokens.css`, with league overrides in
 `src/theme/leagues/metropolitana.css`. Components use `bg-surface`, `text-ink`,
 `border-line` and `font-display`; no raw hex values live in components.
@@ -62,7 +62,7 @@ olb/
 # 1. API on :3001 with the in-memory store
 cd ../olb-api
 npm install
-PORT=3001 node dist/main.js   # or: npm run start:dev
+PORT=3001 node dist/main.js   # or: npm run dev
 
 # 2. Viewer on :3000
 cd ../olb-web
@@ -122,7 +122,10 @@ email and password). The Bearer token and identity stay in `localStorage`; the
 console only opens for a caller holding `org_admin`.
 
 - **Catalog**: create and edit seasons, competitions, teams, team seasons and
-  players, and create games for the selected competition.
+  players, and create games for the selected competition. Player names stay
+  private on the public site until an admin records guardian consent; the same
+  row can revoke it. Deleting a player with confirmation removes the identity
+  and roster rows.
 - **Roster**: edit a team season's roster by hand or paste a CSV, one player per
   line as `firstName,lastName,jersey,position`. Imports support a preview,
   reject repeated names, and can replace the existing roster. Jersey and
@@ -171,12 +174,15 @@ recovery, proposals and local-game transfer.
 
 ## What is not here yet
 
-- WebSocket transport with snapshot + delta (ADR 0004). Polling is a stand-in.
+- WebSocket transport with snapshot + delta. Polling plus SSE is the accepted
+  Phase 1 transport (ADR 0010); Redis and the gateway are deferred.
 - Real tracks: `olb-vision` does not exist yet.
 - Cloudflare Workers deployment from ADR 0001, wired once there is something
   worth deploying.
 - Player profiles and career pages. Season stats and standings exist at
   `/stats`; there is no per-player history beyond the current season.
+- Self-service privacy controls and video retention. The Phase 1 baseline is an
+  admin-managed name consent; players and guardians cannot log in yet.
 
 ## Related
 
