@@ -36,6 +36,14 @@ export function parseStreamMessage(data: string): GameStreamMessage | null {
 }
 
 /**
+ * A state from another API replica can arrive after a newer one. `lastSeq` is
+ * the ordering key, so an older state must never replace the rendered one.
+ */
+export function shouldApplyState(previousSeq: number, next: GameState): boolean {
+  return next.lastSeq >= previousSeq;
+}
+
+/**
  * Merges a cursor read into the events already rendered. Identity is the event
  * id; a repeated id replaces its earlier copy instead of duplicating the feed.
  */

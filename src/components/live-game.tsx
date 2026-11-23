@@ -12,7 +12,11 @@ import {
   gameStreamUrl,
 } from "@/lib/client-api";
 import { formatScheduledStart } from "@/lib/format";
-import { mergeEvents, parseStreamMessage } from "@/lib/live-stream";
+import {
+  mergeEvents,
+  parseStreamMessage,
+  shouldApplyState,
+} from "@/lib/live-stream";
 import type { BoxScore, Event, GameRecord, GameState } from "@/lib/types";
 
 type Connection = "stream" | "polling" | "offline" | "demo";
@@ -151,9 +155,10 @@ export function LiveGame({
     const applyState = (next: GameState, channel: "stream" | "polling") => {
       const previousSeq = lastSeq.current;
       const previousStatus = status.current;
+      if (!shouldApplyState(previousSeq, next)) return;
       const advanced = next.lastSeq > previousSeq;
 
-      lastSeq.current = Math.max(previousSeq, next.lastSeq);
+      lastSeq.current = next.lastSeq;
       status.current = next.status;
       setState(next);
       setConnection(channel);

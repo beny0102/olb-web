@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mergeEvents, parseStreamMessage } from "@/lib/live-stream";
+import {
+  mergeEvents,
+  parseStreamMessage,
+  shouldApplyState,
+} from "@/lib/live-stream";
 import type { Event, GameState } from "@/lib/types";
 
 const STATE: GameState = {
@@ -51,6 +55,14 @@ describe("parseStreamMessage", () => {
     expect(parseStreamMessage(message({ type: "ping" }))).toBeNull();
     expect(parseStreamMessage(message({ state: { status: "live" } }))).toBeNull();
     expect(parseStreamMessage("[]")).toBeNull();
+  });
+});
+
+describe("shouldApplyState", () => {
+  it("rejects stale states and accepts equal or newer cursors", () => {
+    expect(shouldApplyState(7, STATE)).toBe(true);
+    expect(shouldApplyState(8, STATE)).toBe(false);
+    expect(shouldApplyState(6, STATE)).toBe(true);
   });
 });
 
