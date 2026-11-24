@@ -26,12 +26,47 @@ export interface GameState {
   lastSeq: number;
 }
 
+export interface PlayerBattingLine {
+  playerId: string;
+  name: string;
+  jersey: string | null;
+  position: string | null;
+  pa: number;
+  ab: number;
+  r: number;
+  h: number;
+  doubles: number;
+  triples: number;
+  hr: number;
+  rbi: number;
+  bb: number;
+  so: number;
+  hbp: number;
+  avg: number | null;
+}
+
+export interface PlayerPitchingLine {
+  playerId: string;
+  name: string;
+  jersey: string | null;
+  position: string | null;
+  pitches: number;
+  outs: number;
+  battersFaced: number;
+  h: number;
+  r: number;
+  bb: number;
+  so: number;
+}
+
 export interface TeamBoxScore {
   runs: number;
   hits: number;
   errors: number;
   /** One entry per inning; null means that half was never closed. */
   linescore: (number | null)[];
+  batting: PlayerBattingLine[];
+  pitching: PlayerPitchingLine[];
 }
 
 export interface BoxScore {

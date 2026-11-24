@@ -180,7 +180,8 @@ recovery, proposals and local-game transfer.
 - Cloudflare Workers deployment from ADR 0001, wired once there is something
   worth deploying.
 - Player profiles and career pages. Season stats and standings exist at
-  `/stats`; there is no per-player history beyond the current season.
+  `/stats`; a league game's box score now includes per-player batting and
+  pitching lines, but there is no player history beyond the current season.
 - Self-service privacy controls and video retention. The Phase 1 baseline is an
   admin-managed name consent; players and guardians cannot log in yet.
 

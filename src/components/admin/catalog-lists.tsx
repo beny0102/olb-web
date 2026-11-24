@@ -1173,9 +1173,15 @@ export function PlayerCatalog({
     <CatalogCard
       testId="list-players"
       title="Jugadores de la organización"
-      description="Edita el nombre, autoriza su publicación o borra el jugador. El nombre permanece oculto hasta que exista consentimiento del tutor."
+      description="Edita el nombre, autoriza su publicación o borra el jugador. El nombre permanece oculto hasta que la liga registre el consentimiento correspondiente."
       message={message}
     >
+      <p className="mt-4 border-l-4 border-accent bg-surface-low p-3 font-body text-body-sm text-ink">
+        La liga es responsable de contar con la aprobación de cada participante —y de
+        su tutor o responsable si es menor— antes de publicar su nombre. Sin ese
+        consentimiento, la plataforma mantiene el nombre oculto y solo muestra dorsal
+        y posición.
+      </p>
       {players.length === 0 ? (
         <p className="mt-4 font-body text-body-sm text-ink-muted">
           Aún no hay jugadores. Crea el primero arriba.
